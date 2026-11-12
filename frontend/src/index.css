@@ -194,6 +194,73 @@
   }
 }
 
+/* Xung sáng chạy dọc đường mạch (CircuitTraces): đoạn sáng 12% chạy hết đường trong 4,5 giây */
+.rf-trace-pulse {
+  stroke-dasharray: 12 88;
+  stroke-dashoffset: 112;
+  animation: rf-trace 4.5s linear infinite;
+}
+@keyframes rf-trace {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Thẻ tính năng kính mờ: lần lượt từng thẻ sáng viền xanh (chu kỳ 9 giây, lệch 3 giây) + sáng khi hover */
+.rf-feature {
+  transition: border-color 200ms var(--ease), background-color 200ms var(--ease), box-shadow 200ms var(--ease);
+  animation: rf-feature-glow 9s ease-in-out infinite;
+}
+.rf-feature:nth-child(2) { animation-delay: 3s; }
+.rf-feature:nth-child(3) { animation-delay: 6s; }
+.rf-feature:hover {
+  border-color: rgb(103 232 249 / 0.55);
+  background-color: rgb(255 255 255 / 0.1);
+  box-shadow: 0 0 0 1px rgb(103 232 249 / 0.25), 0 0 28px -4px rgb(34 211 238 / 0.45);
+}
+@keyframes rf-feature-glow {
+  0%, 30%, 100% {
+    border-color: rgb(255 255 255 / 0.1);
+    box-shadow: none;
+  }
+  10%, 22% {
+    border-color: rgb(103 232 249 / 0.55);
+    box-shadow: 0 0 0 1px rgb(103 232 249 / 0.2), 0 0 28px -4px rgb(34 211 238 / 0.45);
+  }
+}
+
+/* Nút chính trang đăng nhập: gradient xanh → cyan, quầng sáng, vệt sáng quét ngang mỗi 3,5 giây */
+.ant-btn.rf-glow-btn {
+  position: relative;
+  overflow: hidden;
+  border: none;
+  background: linear-gradient(90deg, #0369a1 0%, #0284c7 45%, #06b6d4 100%);
+  box-shadow: 0 8px 24px -10px rgb(14 165 233 / 0.85);
+}
+.ant-btn.rf-glow-btn:not(:disabled):hover {
+  background: linear-gradient(90deg, #075985 0%, #0369a1 45%, #0891b2 100%);
+  box-shadow: 0 10px 28px -10px rgb(14 165 233 / 1);
+}
+.ant-btn.rf-glow-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 35%, rgb(255 255 255 / 0.35) 50%, transparent 65%);
+  transform: translateX(-120%);
+  animation: rf-shimmer 3.5s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes rf-shimmer {
+  0%, 55% { transform: translateX(-120%); }
+  85%, 100% { transform: translateX(120%); }
+}
+
+.rf-motion-paused .rf-trace-pulse,
+.rf-motion-paused .rf-feature,
+.rf-motion-paused .rf-glow-btn::after {
+  animation-play-state: paused;
+}
+
 @layer base {
   html,
   body,

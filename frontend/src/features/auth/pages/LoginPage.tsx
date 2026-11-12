@@ -66,7 +66,7 @@ export function LoginPage() {
           <Link to="/forgot-password">Quên mật khẩu?</Link>
         </div>
 
-        <Button type="primary" htmlType="submit" size="large" block loading={formState.isSubmitting}>
+        <Button type="primary" htmlType="submit" size="large" block loading={formState.isSubmitting} className="rf-glow-btn">
           Đăng nhập
         </Button>
       </Form>

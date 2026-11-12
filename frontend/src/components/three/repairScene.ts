@@ -1,13 +1,16 @@
 import * as THREE from 'three'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
-import { createTechnician } from './technician'
 
 /**
- * Cảnh 3D "bàn sửa chữa" theo hướng chân thực: một chiếc điện thoại (khung titan, mặt kính phản chiếu,
- * viền + "đảo" camera trước, nút bấm, cụm 3 camera sau, cổng USB-C) đang hiển thị tiến độ phiếu, cùng các
- * linh kiện đã tháo ra lơ lửng xung quanh (pin có nhãn, bo mạch có chip, cụm camera, ốc vít, khay SIM).
- * Toàn bộ dựng bằng hình học thủ tục – không tải file mô hình ngoài (không lo bản quyền, không thêm request).
+ * Cảnh "kỹ thuật viên sửa điện thoại" phong cách neon công nghệ:
+ * - Bên trái: anh thợ (ảnh 3D render từ Adobe Stock #1677010084, đã tách nền bằng Photoshop API, nhãn áo đổi
+ *   thành REPAIRFLOW) – thở, đung đưa nhẹ, quầng sáng xanh phía sau; máy tính bảng trên tay chiếu tia quét
+ *   hologram + hạt dữ liệu sang điện thoại.
+ * - Bên phải: điện thoại 3D (khung titan, kính phản chiếu, cụm camera…) với màn hình cắt lớp – nửa giao diện
+ *   theo dõi phiếu, nửa lộ bo mạch/pin; cụm camera và bo mạch văng ra, tia lửa bắn ở góc máy,
+ *   hai vệt sáng năng lượng xoáy quanh máy.
+ * Điện thoại và linh kiện dựng bằng hình học thủ tục (không tải mô hình ngoài).
  *
  * Quy tắc hiệu năng (ui-ux-pro-max – stack threejs):
  * - Mọi geometry/material/texture tạo MỘT lần; vòng lặp chỉ đổi transform.
@@ -180,40 +183,131 @@ function drawScreen(canvas: HTMLCanvasElement) {
   ctx.fillStyle = 'rgba(248,250,252,0.85)'
   roundRect(ctx, W / 2 - 140, H - 70, 280, 12, 6)
   ctx.fill()
+  drawInternals(ctx, W, H)
   ctx.restore()
 }
 
-/** Nhãn pin Li-ion (chữ in, ký hiệu cảnh báo, mã vạch) – để khối pin trông như linh kiện thật. */
-function drawBatteryLabel(canvas: HTMLCanvasElement) {
-  canvas.width = 512
-  canvas.height = 1024
-  const ctx = canvas.getContext('2d')!
-  ctx.fillStyle = '#16181C'
-  ctx.fillRect(0, 0, 512, 1024)
-  ctx.fillStyle = '#E5E7EB'
-  ctx.font = FONT(700, 54)
-  ctx.fillText('Li-ion', 48, 140)
-  ctx.font = FONT(500, 34)
-  ctx.fillStyle = '#CBD5E1'
-  ;['3.87V', '3279mAh', '12.68Wh'].forEach((t, i) => ctx.fillText(t, 48, 220 + i * 52))
-  ctx.fillStyle = '#9CA3AF'
-  ctx.font = FONT(500, 22)
-  ;['Rechargeable Li-ion battery', 'Do not puncture or heat', 'Repair part · RF-BAT-13'].forEach((t, i) => ctx.fillText(t, 48, 440 + i * 36))
-  ctx.strokeStyle = '#F59E0B'
-  ctx.lineWidth = 8
+/** Nửa phải màn hình "cắt lớp": lộ bo mạch, chip, pin, cáp flex – ranh giới chéo có viền sáng xanh. */
+function drawInternals(ctx: CanvasRenderingContext2D, W: number, H: number) {
+  const cutTop = W * 0.66
+  const cutBottom = W * 0.54
+  ctx.save()
   ctx.beginPath()
-  ctx.moveTo(110, 640)
-  ctx.lineTo(60, 730)
-  ctx.lineTo(160, 730)
+  ctx.moveTo(cutTop, 0)
+  ctx.lineTo(W, 0)
+  ctx.lineTo(W, H)
+  ctx.lineTo(cutBottom, H)
   ctx.closePath()
-  ctx.stroke()
-  ctx.fillStyle = '#F59E0B'
-  ctx.fillRect(106, 668, 8, 34)
-  ctx.fillRect(106, 710, 8, 8)
-  for (let i = 0; i < 40; i++) {
-    ctx.fillStyle = i % 3 === 0 ? '#E5E7EB' : '#6B7280'
-    ctx.fillRect(48 + i * 10, 820, i % 4 === 0 ? 6 : 3, 120)
+  ctx.clip()
+  ctx.fillStyle = '#1A1F27'
+  ctx.fillRect(0, 0, W, H)
+  const pcb = ctx.createLinearGradient(cutBottom, 0, W, 0)
+  pcb.addColorStop(0, '#0B3A2C')
+  pcb.addColorStop(1, '#0F4A37')
+  ctx.fillStyle = pcb
+  roundRect(ctx, cutBottom - 40, 150, W - cutBottom - 10, H * 0.36, 26)
+  ctx.fill()
+  // Đường mạch vàng
+  ctx.strokeStyle = 'rgba(212,162,58,0.75)'
+  ctx.lineWidth = 3
+  for (let i = 0; i < 14; i++) {
+    const y = 190 + i * 42
+    ctx.beginPath()
+    ctx.moveTo(cutBottom, y)
+    ctx.lineTo(cutBottom + 60 + (i % 3) * 30, y)
+    ctx.lineTo(cutBottom + 90 + (i % 3) * 30, y + 24)
+    ctx.lineTo(W - 40, y + 24)
+    ctx.stroke()
   }
+  // Nắp chống nhiễu + chip SoC + chip nhớ
+  ctx.fillStyle = '#B8BEC7'
+  roundRect(ctx, W * 0.7, 220, W * 0.22, 230, 10)
+  ctx.fill()
+  ctx.fillStyle = '#0D0F13'
+  roundRect(ctx, W * 0.72, 500, 150, 150, 12)
+  ctx.fill()
+  ctx.fillStyle = '#2B2F36'
+  ctx.font = FONT(600, 20)
+  ctx.fillText('RF-A17', W * 0.72 + 30, 585)
+  ctx.fillStyle = '#0D0F13'
+  roundRect(ctx, W * 0.9 - 20, 520, 70, 110, 8)
+  ctx.fill()
+  // Pin – vỏ bạc + nhãn
+  ctx.fillStyle = '#AEB4BD'
+  roundRect(ctx, cutBottom - 20, H * 0.5, W - cutBottom - 30, H * 0.4, 22)
+  ctx.fill()
+  ctx.fillStyle = '#16181C'
+  roundRect(ctx, cutBottom + 20, H * 0.53, W - cutBottom - 110, H * 0.32, 14)
+  ctx.fill()
+  ctx.fillStyle = '#CBD5E1'
+  ctx.font = FONT(700, 34)
+  ctx.fillText('Li-ion', cutBottom + 50, H * 0.53 + 70)
+  ctx.font = FONT(500, 22)
+  ctx.fillText('3.87V · 3279mAh', cutBottom + 50, H * 0.53 + 110)
+  // Cáp flex cam
+  ctx.fillStyle = '#C9852B'
+  ctx.fillRect(W * 0.86, H * 0.36, 26, H * 0.15)
+  ctx.fillRect(W * 0.86, H * 0.36, 90, 22)
+  // Ốc vít
+  for (const [x, y] of [[cutBottom + 30, 170], [W - 50, 170], [W - 50, H * 0.47], [W - 50, H - 90]]) {
+    ctx.fillStyle = '#5B6270'
+    ctx.beginPath()
+    ctx.arc(x, y, 14, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.strokeStyle = '#2B2F36'
+    ctx.lineWidth = 3
+    ctx.beginPath()
+    ctx.moveTo(x - 7, y)
+    ctx.lineTo(x + 7, y)
+    ctx.moveTo(x, y - 7)
+    ctx.lineTo(x, y + 7)
+    ctx.stroke()
+  }
+  ctx.restore()
+  // Ranh giới cắt: viền sáng xanh
+  ctx.save()
+  ctx.shadowColor = '#22D3EE'
+  ctx.shadowBlur = 24
+  ctx.strokeStyle = '#67E8F9'
+  ctx.lineWidth = 6
+  ctx.beginPath()
+  ctx.moveTo(cutTop, 0)
+  ctx.lineTo(cutBottom, H)
+  ctx.stroke()
+  ctx.restore()
+}
+
+/** Quầng sáng tròn (trắng → trong suốt) – dùng cho sprite cộng màu: tia, đầu tia, tia lửa, đèn nền. */
+function makeGlowTexture() {
+  const c = document.createElement('canvas')
+  c.width = c.height = 128
+  const ctx = c.getContext('2d')!
+  const grd = ctx.createRadialGradient(64, 64, 0, 64, 64, 64)
+  grd.addColorStop(0, 'rgba(255,255,255,1)')
+  grd.addColorStop(0.25, 'rgba(255,255,255,0.55)')
+  grd.addColorStop(1, 'rgba(255,255,255,0)')
+  ctx.fillStyle = grd
+  ctx.fillRect(0, 0, 128, 128)
+  return new THREE.CanvasTexture(c)
+}
+
+/** Một vệt sáng mờ dần ở hai đầu (alphaMap cuộn theo trục u của ống) → ánh sáng chạy dọc vệt năng lượng. */
+function makeStreakTexture() {
+  const c = document.createElement('canvas')
+  c.width = 256
+  c.height = 4
+  const ctx = c.getContext('2d')!
+  const grd = ctx.createLinearGradient(0, 0, 256, 0)
+  grd.addColorStop(0, 'rgb(0,0,0)')
+  grd.addColorStop(0.55, 'rgb(0,0,0)')
+  grd.addColorStop(0.85, 'rgb(255,255,255)')
+  grd.addColorStop(0.9, 'rgb(255,255,255)')
+  grd.addColorStop(1, 'rgb(0,0,0)')
+  ctx.fillStyle = grd
+  ctx.fillRect(0, 0, 256, 4)
+  const t = new THREE.CanvasTexture(c)
+  t.wrapS = THREE.RepeatWrapping
+  return t
 }
 
 /** Bóng mềm giả lập (texture tròn mờ) – rẻ hơn shadow map, đẹp trên nền trong suốt. */
@@ -297,11 +391,13 @@ export function createRepairScene(container: HTMLElement, { animate: animateInit
 
   const root = new THREE.Group()
   if (layout === 'hero') {
-    // Vùng nhìn thấy ≈ ±2,9 × ±3,1: tiêu đề chiếm góc trên-trái, dải thẻ chiếm ~25% dưới → cụm nằm giữa-phải
+    // Vùng nhìn thấy ≈ ±2,9 × ±3,1: tiêu đề góc trên-trái, dải thẻ ~25% dưới → thợ bên trái (chân khuất sau
+    // dải thẻ), điện thoại bên phải
     root.scale.setScalar(0.55)
-    root.position.set(1.3, 0.62, 0)
+    root.position.set(0.3, 0.2, 0)
   } else {
-    root.scale.setScalar(0.62)
+    root.scale.setScalar(0.5)
+    root.position.set(0, -0.3, 0)
   }
   scene.add(root)
 
@@ -422,8 +518,8 @@ export function createRepairScene(container: HTMLElement, { animate: animateInit
   lidar.position.set(plateau.position.x + 0.27, plateau.position.y - 0.33, plateau.position.z - 0.035)
   phone.add(lidar)
 
-  phone.rotation.set(-0.06, -0.35, 0.05)
-  phone.position.x = -0.95
+  phone.rotation.set(-0.06, -0.42, 0.06)
+  phone.position.set(2.6, 0.5, 0)
   root.add(phone)
 
   // Font web có thể tải xong sau lần vẽ đầu → vẽ lại để chữ tiếng Việt đúng font
@@ -435,22 +531,6 @@ export function createRepairScene(container: HTMLElement, { animate: animateInit
   })
 
   // ------------------------------------------------------------------ Linh kiện tháo rời
-  // Pin dạng túi (pouch) bọc foil + nhãn + tab kết nối
-  const battery = new THREE.Group()
-  battery.add(new THREE.Mesh(g(new RoundedBoxGeometry(1.0, 1.95, 0.09, 4, 0.06)), foil))
-  const labelCanvas = document.createElement('canvas')
-  drawBatteryLabel(labelCanvas)
-  const labelTex = new THREE.CanvasTexture(labelCanvas)
-  labelTex.colorSpace = THREE.SRGBColorSpace
-  labelTex.anisotropy = 4
-  const labelMat = new THREE.MeshStandardMaterial({ map: labelTex, roughness: 0.55, metalness: 0.05 })
-  const label = new THREE.Mesh(g(new THREE.PlaneGeometry(0.86, 1.72)), labelMat)
-  label.position.z = 0.047
-  battery.add(label)
-  const tab = new THREE.Mesh(g(new THREE.BoxGeometry(0.34, 0.24, 0.02)), flexMat)
-  tab.position.set(0.18, 1.07, 0.02)
-  battery.add(tab)
-
   // Bo mạch chính: PCB xanh đậm, nắp chống nhiễu bạc, chip đen, chân tiếp xúc vàng
   const board = new THREE.Group()
   board.add(new THREE.Mesh(g(new RoundedBoxGeometry(0.72, 1.7, 0.045, 3, 0.04)), pcb))
@@ -515,13 +595,6 @@ export function createRepairScene(container: HTMLElement, { animate: animateInit
     return s
   }
 
-  // Khay SIM
-  const simTray = new THREE.Group()
-  simTray.add(new THREE.Mesh(g(new RoundedBoxGeometry(0.22, 0.9, 0.035, 3, 0.03)), titanium))
-  const simCard = new THREE.Mesh(g(new RoundedBoxGeometry(0.15, 0.2, 0.012, 2, 0.01)), gold)
-  simCard.position.set(0, 0.05, 0.02)
-  simTray.add(simCard)
-
   const floaters: Floater[] = []
   const addFloater = (obj: THREE.Object3D, pos: [number, number, number], rot: [number, number, number], spin: [number, number, number]) => {
     obj.position.set(...pos)
@@ -529,31 +602,133 @@ export function createRepairScene(container: HTMLElement, { animate: animateInit
     root.add(obj)
     floaters.push({ obj, base: obj.position.clone(), phase: Math.random() * Math.PI * 2, spin: new THREE.Vector3(...spin) })
   }
-  addFloater(battery, [-3.35, -1.3, -0.6], [0.15, 0.55, -0.12], [0, 0.12, 0])
-  addFloater(camModule, [0.75, 3.15, -0.4], [0.3, -0.5, 0.2], [0.05, 0.15, 0])
-  addFloater(makeScrew(), [-0.5, 3.05, 0.9], [0.6, 0, 0.5], [0.2, 0.6, 0])
-  addFloater(makeScrew(), [0.45, -2.75, 1.0], [-0.4, 0, -0.7], [0.3, 0.5, 0])
-  addFloater(simTray, [-2.75, 1.9, 0.6], [0.2, 0.3, 0.9], [0, 0.2, 0.1])
+  // Linh kiện "văng ra" từ góc trên-phải của máy
+  addFloater(camModule, [3.95, 3.25, 0.5], [0.4, -0.6, 0.3], [0.05, 0.18, 0])
+  addFloater(board, [4.15, 1.2, -0.7], [-0.15, -0.7, 0.25], [0, -0.08, 0])
+  addFloater(makeScrew(), [3.3, 3.75, 0.9], [0.6, 0, 0.5], [0.2, 0.6, 0])
+  addFloater(makeScrew(), [4.45, 2.55, 0.6], [-0.4, 0, -0.7], [0.3, 0.5, 0])
+  addFloater(makeScrew(), [1.25, 3.4, 0.4], [0.3, 0, -0.4], [0.25, 0.55, 0])
 
-  // Anh thợ đứng bên phải, quay về phía máy (và hơi hướng ra người xem)
-  const tech = createTechnician()
-  tech.group.position.set(1.45, -PH / 2 - 0.42, 0.55)
-  tech.group.rotation.y = -0.95
-  tech.group.scale.setScalar(1.12)
-  root.add(tech.group)
-  const techShadowTex = makeShadowTexture()
-  const techShadowMat = new THREE.MeshBasicMaterial({ map: techShadowTex, transparent: true, depthWrite: false, opacity: 0.9 })
-  const techShadow = new THREE.Mesh(g(new THREE.PlaneGeometry(1.9, 0.9)), techShadowMat)
-  techShadow.rotation.x = -Math.PI / 2
-  techShadow.position.set(1.45, -PH / 2 - 0.41, 0.55)
-  root.add(techShadow)
+  // ------------------------------------------------------------------ Anh thợ (ảnh Adobe Stock đã tách nền)
+  const TECH_H = 5.8
+  const TECH_W = (TECH_H * 432) / 1100
+  const techTex = new THREE.TextureLoader().load('/images/technician.webp', () => {
+    if (!playing) renderOnce()
+  })
+  techTex.colorSpace = THREE.SRGBColorSpace
+  techTex.anisotropy = 4
+  const techGeo = g(new THREE.PlaneGeometry(TECH_W, TECH_H))
+  techGeo.translate(0, TECH_H / 2, 0) // gốc ở chân → đung đưa quanh bàn chân
+  const techMat = new THREE.MeshBasicMaterial({ map: techTex, transparent: true, alphaTest: 0.02, toneMapped: false })
+  const tech = new THREE.Mesh(techGeo, techMat)
+  tech.position.set(-3.3, -4.6, 0.3)
+  root.add(tech)
+  // Điểm máy tính bảng trên ảnh (toạ độ ảnh 360,460 / 432×1100) → toạ độ trong root
+  const tabletLocal = new THREE.Vector3(-3.3 + (360 / 432 - 0.5) * TECH_W, -4.6 + (1 - 460 / 1100) * TECH_H, 0.35)
+
+  const glowTex = makeGlowTexture()
+  const additive = (color: string, opacity: number) =>
+    new THREE.SpriteMaterial({ map: glowTex, color, transparent: true, opacity, depthWrite: false, blending: THREE.AdditiveBlending })
+  // Đèn nền xanh sau lưng anh thợ (tách nhân vật khỏi nền tối)
+  const backGlowMat = additive('#0EA5E9', 0.32)
+  const backGlow = new THREE.Sprite(backGlowMat)
+  backGlow.scale.set(5.2, 7.2, 1)
+  backGlow.position.set(-3.2, -1.4, -0.6)
+  root.add(backGlow)
+  // Màn hình máy tính bảng phát sáng
+  const tabletGlowMat = additive('#67E8F9', 0.9)
+  const tabletGlow = new THREE.Sprite(tabletGlowMat)
+  tabletGlow.scale.set(0.9, 0.9, 1)
+  tabletGlow.position.copy(tabletLocal)
+  root.add(tabletGlow)
+
+  // ------------------------------------------------------------------ Tia quét hologram: máy tính bảng → điện thoại
+  const beamGeo = g(new THREE.CylinderGeometry(1, 1, 1, 12, 1, true))
+  const beamCoreMat = new THREE.MeshBasicMaterial({ color: '#A5F3FC', transparent: true, opacity: 0.85, depthWrite: false, blending: THREE.AdditiveBlending })
+  const beamHaloMat = new THREE.MeshBasicMaterial({ color: '#0EA5E9', transparent: true, opacity: 0.18, depthWrite: false, blending: THREE.AdditiveBlending })
+  const beamCore = new THREE.Mesh(beamGeo, beamCoreMat)
+  const beamHalo = new THREE.Mesh(beamGeo, beamHaloMat)
+  root.add(beamCore, beamHalo)
+  const hitGlowMat = additive('#67E8F9', 0.9)
+  const hitGlow = new THREE.Sprite(hitGlowMat)
+  hitGlow.scale.set(0.7, 0.7, 1)
+  root.add(hitGlow)
+  const dataMat = additive('#E0F2FE', 0.95)
+  const dataDots: THREE.Sprite[] = []
+  for (let i = 0; i < 9; i++) {
+    // Mỗi hạt một material riêng để độ mờ khác nhau (clone rẻ, dùng chung texture)
+    const d = new THREE.Sprite(dataMat.clone())
+    d.scale.set(0.14, 0.14, 1)
+    root.add(d)
+    dataDots.push(d)
+  }
+  const beamTarget = new THREE.Vector3()
+  const tmpV = new THREE.Vector3()
+  const UP = new THREE.Vector3(0, 1, 0)
+  const placeBeam = (mesh: THREE.Mesh, from: THREE.Vector3, to: THREE.Vector3, radius: number) => {
+    tmpV.subVectors(to, from)
+    const len = tmpV.length()
+    mesh.position.copy(from).addScaledVector(tmpV, 0.5)
+    mesh.quaternion.setFromUnitVectors(UP, tmpV.normalize())
+    mesh.scale.set(radius, len, radius)
+  }
+
+  // ------------------------------------------------------------------ Tia lửa ở góc máy (nơi linh kiện văng ra)
+  const SPARKS = 90
+  const sparkPos = new Float32Array(SPARKS * 3).fill(-999)
+  const sparkVel = new Float32Array(SPARKS * 3)
+  const sparkLife = new Float32Array(SPARKS)
+  const sparkGeo = g(new THREE.BufferGeometry())
+  sparkGeo.setAttribute('position', new THREE.BufferAttribute(sparkPos, 3))
+  const sparkMat = new THREE.PointsMaterial({ map: glowTex, color: '#FDBA74', size: 0.16, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })
+  const sparks = new THREE.Points(sparkGeo, sparkMat)
+  sparks.frustumCulled = false
+  root.add(sparks)
+  const emitter = new THREE.Vector3()
+  const emitterGlowMat = additive('#FDBA74', 0.9)
+  const emitterGlow = new THREE.Sprite(emitterGlowMat)
+  root.add(emitterGlow)
+  const respawn = (i: number) => {
+    sparkPos.set([emitter.x, emitter.y, emitter.z], i * 3)
+    sparkVel.set([0.6 + Math.random() * 2.6, 0.4 + Math.random() * 2.4, (Math.random() - 0.5) * 1.6], i * 3)
+    sparkLife[i] = 0.35 + Math.random() * 0.9
+  }
+
+  // ------------------------------------------------------------------ Vệt sáng năng lượng xoáy quanh máy
+  const streakTex = makeStreakTexture()
+  const ring = (rx: number, rz: number) => {
+    const pts: THREE.Vector3[] = []
+    for (let i = 0; i < 48; i++) {
+      const a = (i / 48) * Math.PI * 2
+      pts.push(new THREE.Vector3(Math.cos(a) * rx, Math.sin(a * 2) * 0.15, Math.sin(a) * rz))
+    }
+    return new THREE.CatmullRomCurve3(pts, true)
+  }
+  const streakMats: THREE.MeshBasicMaterial[] = []
+  const streaks: THREE.Mesh[] = []
+  const rings: [number, number, number, string, number, number][] = [
+    [2.3, 1.3, 0.035, '#38BDF8', 0.55, 0.3],
+    [2.6, 1.5, 0.025, '#22D3EE', -0.45, -0.25],
+  ]
+  for (const [rx, rz, tube, color, rotZ, rotX] of rings) {
+    const alpha = streakTex.clone()
+    alpha.wrapS = THREE.RepeatWrapping
+    alpha.repeat.set(2, 1)
+    const mat = new THREE.MeshBasicMaterial({ color, alphaMap: alpha, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })
+    streakMats.push(mat)
+    const mesh = new THREE.Mesh(g(new THREE.TubeGeometry(ring(rx, rz), 240, tube, 8, true)), mat)
+    mesh.position.set(2.6, 0.5, 0)
+    mesh.rotation.set(rotX, 0, rotZ)
+    root.add(mesh)
+    streaks.push(mesh)
+  }
 
   // Bóng mềm dưới điện thoại
   const shadowTex = makeShadowTexture()
   const shadowMat = new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.85 })
   const shadow = new THREE.Mesh(g(new THREE.PlaneGeometry(3.6, 1.1)), shadowMat)
   shadow.rotation.x = -Math.PI / 2
-  shadow.position.set(-0.95, -PH / 2 - 0.55, 0)
+  shadow.position.set(2.6, 0.5 - PH / 2 - 0.55, 0)
   root.add(shadow)
 
   // Bụi sáng rất nhẹ ở hậu cảnh (chiều sâu)
@@ -590,11 +765,63 @@ export function createRepairScene(container: HTMLElement, { animate: animateInit
     timer.update(timestamp)
     const t = timer.getElapsed()
     const dt = Math.min(timer.getDelta(), 0.05)
-    // Điện thoại xoay rất nhẹ (anh thợ đang làm việc trên máy); cả cụm đung đưa chậm để có chiều sâu
-    phone.rotation.y = -0.35 + Math.sin(t * 0.3) * 0.12
-    root.rotation.y = Math.sin(t * 0.18) * 0.06
-    tech.update(t)
-    phone.position.y = Math.sin(t * 0.7) * 0.06
+    // Điện thoại xoay rất nhẹ; anh thợ thở + đung đưa quanh bàn chân
+    phone.rotation.y = -0.42 + Math.sin(t * 0.3) * 0.1
+    phone.position.y = 0.5 + Math.sin(t * 0.7) * 0.06
+    root.rotation.y = Math.sin(t * 0.18) * 0.04
+    tech.scale.set(1 + Math.sin(t * 1.9) * 0.004, 1 + Math.sin(t * 1.9) * 0.007, 1)
+    tech.rotation.z = Math.sin(t * 0.55) * 0.012
+    backGlowMat.opacity = 0.28 + Math.sin(t * 1.3) * 0.06
+    tabletGlowMat.opacity = 0.75 + Math.sin(t * 6) * 0.12
+
+    // Tia quét: bật 75% chu kỳ 3,2 giây, rung nhẹ như tia thật
+    const cycle = (t % 3.2) / 3.2
+    const beam = cycle < 0.75 ? Math.min(cycle / 0.06, (0.75 - cycle) / 0.06, 1) : 0
+    const flicker = 0.85 + Math.sin(t * 43) * 0.08 + Math.sin(t * 17) * 0.07
+    phone.updateMatrixWorld()
+    beamTarget.set(-0.45 + Math.sin(t * 1.7) * 0.25, 0.35 + Math.sin(t * 1.1) * 0.6, PD / 2 + 0.02)
+    phone.localToWorld(beamTarget)
+    root.worldToLocal(beamTarget)
+    placeBeam(beamCore, tabletLocal, beamTarget, 0.018)
+    placeBeam(beamHalo, tabletLocal, beamTarget, 0.075)
+    beamCoreMat.opacity = 0.85 * beam * flicker
+    beamHaloMat.opacity = 0.2 * beam * flicker
+    hitGlow.position.copy(beamTarget)
+    hitGlowMat.opacity = 0.9 * beam * flicker
+    hitGlow.scale.setScalar(0.5 + beam * 0.3 * flicker)
+    dataDots.forEach((d, i) => {
+      const k = (t * 0.7 + i / dataDots.length) % 1
+      d.position.lerpVectors(tabletLocal, beamTarget, k)
+      ;(d.material as THREE.SpriteMaterial).opacity = beam * Math.sin(k * Math.PI) * 0.95
+    })
+
+    // Tia lửa ở góc trên-phải của máy
+    emitter.set(PW / 2 - 0.15, PH / 2 - 0.5, PD / 2)
+    phone.localToWorld(emitter)
+    root.worldToLocal(emitter)
+    emitterGlow.position.copy(emitter)
+    const burst = 0.6 + Math.max(0, Math.sin(t * 2.3)) * 0.4
+    emitterGlowMat.opacity = burst * (0.75 + Math.random() * 0.25)
+    emitterGlow.scale.setScalar(0.55 + burst * 0.35)
+    for (let i = 0; i < SPARKS; i++) {
+      sparkLife[i] -= dt
+      if (sparkLife[i] <= 0) {
+        if (Math.random() < burst * 0.35) respawn(i)
+        else sparkPos[i * 3 + 1] = -999 // ẩn tới lần bắn sau
+        continue
+      }
+      sparkVel[i * 3 + 1] -= 5.5 * dt // trọng lực
+      sparkPos[i * 3] += sparkVel[i * 3] * dt
+      sparkPos[i * 3 + 1] += sparkVel[i * 3 + 1] * dt
+      sparkPos[i * 3 + 2] += sparkVel[i * 3 + 2] * dt
+    }
+    sparkGeo.attributes.position.needsUpdate = true
+
+    // Vệt sáng xoáy
+    streakMats[0].alphaMap!.offset.x = -t * 0.35
+    streakMats[1].alphaMap!.offset.x = t * 0.27
+    streaks[0].rotation.y = t * 0.08
+    streaks[1].rotation.y = -t * 0.06
     shadow.scale.setScalar(1 - Math.sin(t * 0.7) * 0.04)
     for (const f of floaters) {
       f.obj.position.y = f.base.y + Math.sin(t * 0.8 + f.phase) * 0.12
@@ -636,11 +863,10 @@ export function createRepairScene(container: HTMLElement, { animate: animateInit
       io.disconnect()
       ro.disconnect()
       document.removeEventListener('visibilitychange', sync)
-      tech.dispose()
       timer.dispose()
       for (const geo of geos) geo.dispose()
-      for (const m of [titanium, backGlass, plateauGlass, lensRing, lensGlass, blackPlastic, glassCoat, foil, pcb, shieldCan, chipMat, gold, screwMat, flexMat, flashMat, screenMat, labelMat, shadowMat, dustMat, techShadowMat]) m.dispose()
-      for (const t of [screenTex, labelTex, shadowTex, techShadowTex]) t.dispose()
+      for (const m of [titanium, backGlass, plateauGlass, lensRing, lensGlass, blackPlastic, glassCoat, foil, pcb, shieldCan, chipMat, gold, screwMat, flexMat, flashMat, screenMat, shadowMat, dustMat, techMat, backGlowMat, tabletGlowMat, beamCoreMat, beamHaloMat, hitGlowMat, dataMat, sparkMat, emitterGlowMat, ...streakMats, ...dataDots.map((d) => d.material)]) m.dispose()
+      for (const t of [screenTex, shadowTex, techTex, glowTex, streakTex, ...streakMats.map((m) => m.alphaMap!)]) t.dispose()
       envTexture.dispose()
       pmrem.dispose()
       renderer.dispose()

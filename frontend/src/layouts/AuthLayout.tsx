@@ -3,6 +3,7 @@ import { Button, Grid } from 'antd'
 import { Suspense, useState, type ReactNode } from 'react'
 import { Link, Outlet } from 'react-router-dom'
 import { RepairScene3D } from '@/components/three/lazyRepairScene'
+import { CircuitTraces } from '@/components/CircuitTraces'
 import { Scene3DBoundary } from '@/components/three/Scene3DBoundary'
 
 const CURRENT_YEAR = new Date().getFullYear()
@@ -51,6 +52,8 @@ export function AuthLayout() {
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 opacity-[0.07] [background-image:linear-gradient(#fff_1px,transparent_1px),linear-gradient(90deg,#fff_1px,transparent_1px)] [background-size:48px_48px] [mask-image:radial-gradient(70%_60%_at_60%_40%,#000,transparent)]"
         />
+        {/* Nền bo mạch phát sáng, xung chạy dọc đường mạch (nằm sau cảnh 3D) */}
+        <CircuitTraces className="pointer-events-none absolute inset-0 h-full w-full" />
         {screens.lg && (
           <Scene3DBoundary>
             <Suspense fallback={null}>
@@ -58,10 +61,10 @@ export function AuthLayout() {
             </Suspense>
           </Scene3DBoundary>
         )}
-        {/* Lớp phủ: giữ tương phản cho chữ phía trên/trái và dải thẻ phía dưới */}
+        {/* Lớp phủ: chỉ tối ở góc tiêu đề và dải thẻ phía dưới – không che anh thợ */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgb(7_11_20/0.85)_0%,rgb(7_11_20/0.35)_45%,transparent_70%),linear-gradient(0deg,rgb(7_11_20/0.9)_0%,transparent_35%)]"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(55%_38%_at_0%_10%,rgb(7_11_20/0.85),transparent),linear-gradient(0deg,rgb(7_11_20/0.85)_0%,transparent_30%)]"
         />
 
         <div data-enter className="pointer-events-none relative z-10 flex h-full flex-col p-10 xl:p-14">
@@ -82,7 +85,7 @@ export function AuthLayout() {
 
           <ul className="mt-auto grid list-none gap-3 p-0 xl:grid-cols-3">
             {FEATURES.map((f) => (
-              <li key={f.title} className="rounded-2xl border border-white/10 bg-white/[0.06] p-4 backdrop-blur-md">
+              <li key={f.title} className="rf-feature pointer-events-auto rounded-2xl border border-white/10 bg-white/[0.06] p-4 backdrop-blur-md">
                 <span aria-hidden="true" className="mb-2 flex size-9 items-center justify-center rounded-xl bg-sky-400/15 text-lg text-sky-300">
                   {f.icon}
                 </span>
