@@ -199,6 +199,17 @@
 
 **Dữ liệu tạo khi test (DB dev):** yêu cầu bảo hành `WC-2026-000001`, phiếu bảo hành `RO-2026-000002` (đang sửa, KTV demo), báo giá v1 0₫ đã duyệt, các thông báo liên quan.
 
+## Thiết kế lại giao diện (phiên bản 2 – 2026-11-12)
+
+- [x] Hướng thiết kế chốt bằng skill **ui-ux-pro-max**: bảng màu B2B Service (navy + xanh `#0369A1` + điểm nhấn hổ phách), logo mới
+- [x] Trang công khai: panel navy với **cảnh 3D three.js** (điện thoại hiển thị tiến độ sửa + linh kiện bay quanh, nghiêng theo con trỏ), thẻ kính mờ; mobile dùng dải thương hiệu gọn
+- [x] App: sidebar có vạch chọn + avatar, card có bóng nhẹ, banner chào mừng dashboard, minh họa SVG cho trạng thái trống và trang 404
+- [x] Kiểm tra: `tsc`, `oxlint`, `vitest` 49 test, `vite build` (three.js ở chunk riêng 142 KB gzip); trình duyệt desktop 1440px + mobile 375px (không tải 3D, không tràn ngang); rời trang công khai → canvas WebGL được gỡ
+
+**Lỗi tìm thấy & đã sửa:** cụm 3D quá to đè lên tiêu đề → thu nhỏ, lệch phải, thêm lớp phủ giữ tương phản chữ; chunk 3D tải lỗi làm sập cả trang đăng nhập → bọc `Scene3DBoundary`.
+
+**Ghi chú:** một bản thiết kế lại dở dang từ phiên khác (chưa commit) được cất vào `git stash` (`stash@{0}`) trước khi làm lại – lấy lại bằng `git stash show -p stash@{0}` nếu cần tham khảo.
+
 ## Lộ trình theo mốc
 
 1. ✅ Phân tích nghiệp vụ + ERD + UI/UX

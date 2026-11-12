@@ -1,5 +1,6 @@
 import { Empty } from 'antd'
 import type { ReactNode } from 'react'
+import { EmptyIllustration } from './illustrations'
 
 export interface EmptyStateProps {
   title?: string
@@ -12,7 +13,8 @@ export function EmptyState({ title = 'Chưa có dữ liệu', description, actio
   return (
     <div className={`flex flex-col items-center justify-center text-center ${compact ? 'py-6' : 'py-14'}`}>
       <Empty
-        image={compact ? Empty.PRESENTED_IMAGE_SIMPLE : Empty.PRESENTED_IMAGE_DEFAULT}
+        image={<EmptyIllustration className={compact ? 'h-16 w-auto' : 'h-28 w-auto'} />}
+        styles={{ image: { height: 'auto', marginBottom: 12 } }}
         description={
           <span className="flex flex-col gap-1">
             <span className="text-base font-semibold text-text">{title}</span>

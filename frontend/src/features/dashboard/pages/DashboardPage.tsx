@@ -18,7 +18,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAppSelector } from '@/app/hooks'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
-import { PageHeader } from '@/components/PageHeader'
+import { WorkbenchIllustration } from '@/components/illustrations'
 import { StatCard } from '@/components/StatCard'
 import { StatusTag } from '@/components/StatusTag'
 import { REPAIR_PRIORITY_CONFIG, REPAIR_STATUS_CONFIG } from '@/features/repairs/constants/status'
@@ -35,12 +35,37 @@ export function DashboardPage() {
   const firstName = user.fullName.trim().split(/\s+/).pop()
   return (
     <>
-      <PageHeader title={`Xin chào, ${firstName}`} description={`Bạn đang đăng nhập với vai trò ${ROLE_LABELS[user.role]}.`} />
+      <WelcomeBanner name={firstName ?? user.fullName} role={ROLE_LABELS[user.role]} />
       {user.role === 'ADMIN' && <AdminDashboardView />}
       {user.role === 'STAFF' && <StaffDashboardView />}
       {user.role === 'TECHNICIAN' && <TechnicianDashboardView />}
       {user.role === 'CUSTOMER' && <CustomerDashboardView />}
     </>
+  )
+}
+
+const TODAY_LABEL = (() => {
+  const s = dayjs().format('dddd, DD/MM/YYYY')
+  return s.charAt(0).toUpperCase() + s.slice(1)
+})()
+
+/** Banner chào mừng: nền navy + minh họa bàn làm việc (ẩn trên màn hình nhỏ). Giữ một <h1> cho trang. */
+function WelcomeBanner({ name, role }: { name: string; role: string }) {
+  return (
+    <section className="relative mb-6 overflow-hidden rounded-2xl bg-[radial-gradient(120%_120%_at_85%_0%,#0C4A6E_0%,#0B1220_60%)] px-6 py-6 text-white md:px-8">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 opacity-[0.06] [background-image:linear-gradient(#fff_1px,transparent_1px),linear-gradient(90deg,#fff_1px,transparent_1px)] [background-size:32px_32px]"
+      />
+      <div className="relative flex items-center justify-between gap-6">
+        <div className="min-w-0">
+          <p className="m-0 text-sm text-sky-200">{TODAY_LABEL}</p>
+          <h1 className="mt-1 mb-1 text-2xl font-semibold tracking-tight md:text-[28px]">Xin chào, {name}</h1>
+          <p className="m-0 text-sm text-slate-300">Bạn đang làm việc với vai trò <span className="font-medium text-white">{role}</span>.</p>
+        </div>
+        <WorkbenchIllustration className="-my-4 hidden h-36 w-auto shrink-0 md:block" />
+      </div>
+    </section>
   )
 }
 

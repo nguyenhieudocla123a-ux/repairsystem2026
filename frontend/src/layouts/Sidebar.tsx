@@ -38,8 +38,8 @@ export function Sidebar({ role, userName, collapsed, selectedPath, onNavigate }:
   const selectedKey = routesForRole(role).find((r) => selectedPath === r.path || selectedPath.startsWith(`${r.path}/`))?.path
 
   return (
-    <nav aria-label="Điều hướng chính" className="flex h-full flex-col bg-sidebar">
-      <div className={`flex h-16 shrink-0 items-center gap-2.5 ${collapsed ? 'justify-center' : 'px-5'}`}>
+    <nav aria-label="Điều hướng chính" className="rf-sidebar flex h-full flex-col bg-sidebar bg-[linear-gradient(180deg,#0B1220_0%,#0A1628_100%)]">
+      <div className={`flex h-16 shrink-0 items-center gap-2.5 border-b border-white/5 ${collapsed ? 'justify-center' : 'px-5'}`}>
         <img src="/favicon.svg" alt="" className="size-8" />
         {!collapsed && <span className="text-[17px] font-bold tracking-tight text-white">RepairFlow</span>}
       </div>
@@ -57,9 +57,14 @@ export function Sidebar({ role, userName, collapsed, selectedPath, onNavigate }:
       </div>
 
       {!collapsed && (
-        <div className="m-3 rounded-xl bg-white/5 px-3 py-2.5">
-          <div className="truncate text-sm font-medium text-white">{userName}</div>
-          <div className="text-xs text-sidebar-muted">{ROLE_LABELS[role]}</div>
+        <div className="m-3 flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.04] px-3 py-2.5">
+          <span aria-hidden="true" className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-sky-700 text-sm font-semibold text-white">
+            {userName.trim().split(/\s+/).pop()?.[0]?.toUpperCase() ?? '?'}
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-medium text-white">{userName}</span>
+            <span className="block text-xs text-sidebar-muted">{ROLE_LABELS[role]}</span>
+          </span>
         </div>
       )}
     </nav>

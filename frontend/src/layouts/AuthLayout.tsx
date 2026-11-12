@@ -1,56 +1,87 @@
-import { CheckCircleFilled } from '@ant-design/icons'
+import { BellOutlined, FileProtectOutlined, SafetyCertificateOutlined } from '@ant-design/icons'
+import { Grid } from 'antd'
+import { lazy, Suspense, type ReactNode } from 'react'
 import { Link, Outlet } from 'react-router-dom'
+import { Scene3DBoundary } from '@/components/three/Scene3DBoundary'
+
+/** three.js chỉ tải khi màn hình đủ rộng để thấy panel 3D (≥ lg) – chunk riêng. */
+const RepairScene3D = lazy(() => import('@/components/three/RepairScene3D'))
 
 const CURRENT_YEAR = new Date().getFullYear()
 
-const HIGHLIGHTS = [
-  'Theo dõi tiến độ sửa chữa theo thời gian thực',
-  'Báo giá minh bạch, khách xác nhận trực tuyến',
-  'Tra cứu bảo hành bằng mã phiếu hoặc serial',
+const FEATURES: { icon: ReactNode; title: string; text: string }[] = [
+  { icon: <BellOutlined />, title: 'Cập nhật tức thì', text: 'Khách nhận thông báo ngay khi phiếu đổi trạng thái' },
+  { icon: <FileProtectOutlined />, title: 'Báo giá minh bạch', text: 'Khách xem và xác nhận báo giá trực tuyến' },
+  { icon: <SafetyCertificateOutlined />, title: 'Bảo hành rõ ràng', text: 'Tra cứu bằng mã phiếu hoặc số serial' },
 ]
 
-/** Bố cục trang công khai: panel thương hiệu (ẩn trên mobile) + form. */
-export function AuthLayout() {
-  return (
-    <div className="grid min-h-screen bg-surface lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
-      <aside className="relative hidden overflow-hidden bg-sidebar p-12 text-white lg:flex lg:flex-col">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -top-32 -right-24 size-[28rem] rounded-full bg-primary opacity-40 blur-3xl"
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -bottom-40 -left-20 size-[24rem] rounded-full bg-tone-info-fg opacity-30 blur-3xl"
-        />
-        <Link to="/login" className="relative flex items-center gap-3 text-white no-underline">
-          <img src="/favicon.svg" alt="" className="size-10" />
-          <span className="text-xl font-bold tracking-tight">RepairFlow</span>
-        </Link>
+/** Nền navy dùng chung cho panel thương hiệu (desktop) và dải tiêu đề (mobile). */
+const brandBg = 'bg-[radial-gradient(120%_80%_at_70%_20%,#0C4A6E_0%,#0B1220_55%,#070B14_100%)]'
 
-        <div className="relative mt-auto mb-auto max-w-md">
-          <h2 className="m-0 text-4xl leading-tight font-bold">
-            Quản lý sửa chữa &amp; bảo hành thiết bị, gọn trong một nơi.
-          </h2>
-          <ul className="mt-8 flex list-none flex-col gap-4 p-0">
-            {HIGHLIGHTS.map((text) => (
-              <li key={text} className="flex items-start gap-3 text-base text-slate-300">
-                <CheckCircleFilled className="mt-1 text-primary" aria-hidden="true" />
-                {text}
+/** Bố cục trang công khai: panel thương hiệu 3D (≥1024px) + vùng form. */
+export function AuthLayout() {
+  const screens = Grid.useBreakpoint()
+  return (
+    <div className="grid min-h-screen bg-bg lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+      <aside className={`relative hidden overflow-hidden text-white lg:flex lg:flex-col ${brandBg}`}>
+        {/* Lưới mờ tạo cảm giác "bàn kỹ thuật" */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 opacity-[0.07] [background-image:linear-gradient(#fff_1px,transparent_1px),linear-gradient(90deg,#fff_1px,transparent_1px)] [background-size:48px_48px] [mask-image:radial-gradient(70%_60%_at_60%_40%,#000,transparent)]"
+        />
+        {screens.lg && (
+          <Scene3DBoundary>
+            <Suspense fallback={null}>
+              <RepairScene3D className="absolute inset-0" />
+            </Suspense>
+          </Scene3DBoundary>
+        )}
+        {/* Lớp phủ: giữ tương phản cho chữ phía trên/trái và dải thẻ phía dưới */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgb(7_11_20/0.85)_0%,rgb(7_11_20/0.35)_45%,transparent_70%),linear-gradient(0deg,rgb(7_11_20/0.9)_0%,transparent_35%)]"
+        />
+
+        <div className="pointer-events-none relative flex h-full flex-col p-10 xl:p-14">
+          <Link to="/login" className="pointer-events-auto flex w-fit items-center gap-3 text-white no-underline">
+            <img src="/favicon.svg" alt="" className="size-10" />
+            <span className="text-xl font-bold tracking-tight">RepairFlow</span>
+          </Link>
+
+          <div className="mt-10 max-w-md">
+            <p className="m-0 text-sm font-semibold tracking-[0.14em] text-sky-300 uppercase">Sửa chữa &amp; bảo hành thiết bị</p>
+            <h2 className="mt-3 mb-0 text-4xl leading-[1.15] font-bold tracking-tight xl:text-[44px]">
+              Mỗi chiếc máy, một quy trình <span className="text-sky-300">rõ ràng</span>.
+            </h2>
+          </div>
+
+          <ul className="mt-auto grid list-none gap-3 p-0 xl:grid-cols-3">
+            {FEATURES.map((f) => (
+              <li key={f.title} className="rounded-2xl border border-white/10 bg-white/[0.06] p-4 backdrop-blur-md">
+                <span aria-hidden="true" className="mb-2 flex size-9 items-center justify-center rounded-xl bg-sky-400/15 text-lg text-sky-300">
+                  {f.icon}
+                </span>
+                <span className="block text-sm font-semibold">{f.title}</span>
+                <span className="mt-1 block text-[13px] leading-5 text-slate-300">{f.text}</span>
               </li>
             ))}
           </ul>
+          <p className="mt-6 mb-0 text-sm text-slate-400">© {CURRENT_YEAR} RepairFlow</p>
         </div>
-
-        <p className="relative m-0 text-sm text-slate-400">© {CURRENT_YEAR} RepairFlow</p>
       </aside>
 
-      <main className="flex items-center justify-center px-5 py-10 sm:px-10">
-        <div className="w-full max-w-[400px]">
-          <Link to="/login" className="mb-8 flex items-center gap-2.5 no-underline lg:hidden">
+      <main className="flex flex-col">
+        {/* Mobile/tablet: dải thương hiệu gọn thay cho panel 3D (tiết kiệm pin & dữ liệu) */}
+        <div className={`flex items-center gap-2.5 px-5 py-5 lg:hidden ${brandBg}`}>
+          <Link to="/login" className="flex items-center gap-2.5 text-white no-underline">
             <img src="/favicon.svg" alt="" className="size-9" />
-            <span className="text-lg font-bold text-text">RepairFlow</span>
+            <span className="text-lg font-bold">RepairFlow</span>
           </Link>
-          <Outlet />
+        </div>
+        <div className="flex flex-1 items-center justify-center px-5 py-10 sm:px-10">
+          <div className="w-full max-w-[420px]">
+            <Outlet />
+          </div>
         </div>
       </main>
     </div>

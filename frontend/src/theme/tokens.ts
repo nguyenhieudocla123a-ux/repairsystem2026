@@ -2,20 +2,25 @@
  * Nguồn token duy nhất của design system (docs/design-system.md §2).
  * AntD nhận token qua ConfigProvider và xuất ra CSS variables --ant-*; Tailwind đọc lại chúng trong index.css.
  */
+/**
+ * Bảng màu "B2B Service" (ui-ux-pro-max): navy chuyên nghiệp + xanh dương cho hành động chính.
+ * primary #0369A1 đạt 5,9:1 trên nền trắng (dùng được cho chữ/link), accent hổ phách chỉ để nhấn (không dùng cho chữ).
+ */
 export const colors = {
-  primary: '#4F46E5',
-  primaryHover: '#4338CA',
-  bg: '#F8FAFC',
+  primary: '#0369A1',
+  primaryHover: '#075985',
+  accent: '#F59E0B',
+  bg: '#F5F7FA',
   surface: '#FFFFFF',
   border: '#E2E8F0',
   text: '#0F172A',
   textSecondary: '#475569',
-  textMuted: '#94A3B8',
-  success: '#16A34A',
-  warning: '#D97706',
+  textMuted: '#64748B',
+  success: '#15803D',
+  warning: '#B45309',
   error: '#DC2626',
-  info: '#0284C7',
-  sidebarBg: '#0F172A',
+  info: '#0E7490',
+  sidebarBg: '#0B1220',
   sidebarText: '#CBD5E1',
   sidebarTextActive: '#FFFFFF',
 } as const

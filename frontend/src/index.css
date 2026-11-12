@@ -23,23 +23,39 @@
 
   --color-sidebar: var(--rf-sidebar-bg);
   --color-sidebar-muted: #94a3b8;
+  --color-accent: var(--rf-accent);
 
-  --color-tone-primary-bg: #eef2ff;
-  --color-tone-primary-fg: #4f46e5;
+  --color-tone-primary-bg: #e0f2fe;
+  --color-tone-primary-fg: #075985;
   --color-tone-success-bg: #f0fdf4;
   --color-tone-success-fg: #15803d;
   --color-tone-warning-bg: #fffbeb;
   --color-tone-warning-fg: #b45309;
   --color-tone-error-bg: #fef2f2;
   --color-tone-error-fg: #b91c1c;
-  --color-tone-info-bg: #f0f9ff;
-  --color-tone-info-fg: #0369a1;
+  --color-tone-info-bg: #ecfeff;
+  --color-tone-info-fg: #0e7490;
   --color-tone-neutral-bg: #f1f5f9;
   --color-tone-neutral-fg: #334155;
 
-  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.06);
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 2px 8px -2px rgb(15 23 42 / 0.06);
   --shadow-overlay: 0 10px 30px rgb(15 23 42 / 0.12);
   --radius-card: 12px;
+}
+
+@layer components {
+  /* Sidebar: mục đang chọn có vạch xanh bên trái + chữ sáng – nhận biết không chỉ nhờ màu nền */
+  .rf-sidebar .ant-menu-dark .ant-menu-item-selected {
+    box-shadow: inset 3px 0 0 #38bdf8;
+    font-weight: 500;
+  }
+  .rf-sidebar .ant-menu-dark .ant-menu-item {
+    transition: background-color 150ms ease, color 150ms ease;
+  }
+  /* Thẻ (Card) mặc định: viền mảnh + bóng rất nhẹ cho cảm giác có lớp */
+  .ant-card:not(.ant-card-type-inner) {
+    box-shadow: var(--shadow-card);
+  }
 }
 
 @layer base {

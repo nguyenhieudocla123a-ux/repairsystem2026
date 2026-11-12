@@ -15,24 +15,27 @@
 
 ### 2.1 Màu
 
+> **Phiên bản 2 (2026-11-12):** đổi sang bảng màu *B2B Service* do skill **ui-ux-pro-max** đề xuất cho dịch vụ kỹ thuật – navy chuyên nghiệp + xanh dương cho hành động chính, hổ phách làm điểm nhấn. Màu primary mới đã chạy validator của skill `dataviz` (đạt ≥ 3:1 cho biểu đồ, 5,9:1 cho chữ).
+
 | Token | Giá trị | Dùng cho |
 |---|---|---|
-| `brand.primary` | `#4F46E5` | Nút chính, link, menu active, focus |
-| `brand.primaryHover` | `#4338CA` | Hover nút chính |
-| `neutral.bg` | `#F8FAFC` | Nền trang |
+| `brand.primary` | `#0369A1` | Nút chính, link, focus, chuỗi biểu đồ |
+| `brand.primaryHover` | `#075985` | Hover nút chính |
+| `brand.accent` | `#F59E0B` | Điểm nhấn trang trí (logo, minh họa) – **không** dùng cho chữ |
+| `neutral.bg` | `#F5F7FA` | Nền trang |
 | `neutral.surface` | `#FFFFFF` | Card, bảng, header |
 | `neutral.border` | `#E2E8F0` | Viền card/bảng |
 | `neutral.text` | `#0F172A` | Chữ chính (tương phản 17:1 trên trắng) |
 | `neutral.textSecondary` | `#475569` | Chữ phụ (7.5:1 – đạt AA cho chữ nhỏ) |
-| `neutral.textMuted` | `#94A3B8` | Placeholder, chú thích phụ – **không** dùng cho nội dung quan trọng |
-| `sidebar.bg` | `#0F172A` | Sidebar |
+| `neutral.textMuted` | `#64748B` | Placeholder, chú thích phụ (4,8:1 – đạt AA) |
+| `sidebar.bg` | `#0B1220` | Sidebar (chuyển nhẹ sang `#0A1628`), mục đang chọn có vạch xanh `#38BDF8` bên trái |
 | `sidebar.text` / `sidebar.textActive` | `#CBD5E1` / `#FFFFFF` | Menu sidebar |
-| `semantic.success` | `#16A34A` | Hoàn thành, còn bảo hành |
-| `semantic.warning` | `#D97706` | Chờ xác nhận, tồn thấp |
+| `semantic.success` | `#15803D` | Hoàn thành, còn bảo hành |
+| `semantic.warning` | `#B45309` | Chờ xác nhận, tồn thấp |
 | `semantic.error` | `#DC2626` | Lỗi, hủy, hết hạn |
-| `semantic.info` | `#0284C7` | Thông tin |
+| `semantic.info` | `#0E7490` | Thông tin |
 
-Mỗi tông ngữ nghĩa (`tone`) có cặp **nền nhạt + chữ đậm** dùng cho icon StatCard/Badge: `primary` (#EEF2FF/#4F46E5), `success` (#F0FDF4/#15803D), `warning` (#FFFBEB/#B45309), `error` (#FEF2F2/#B91C1C), `info` (#F0F9FF/#0369A1), `neutral` (#F1F5F9/#334155).
+Mỗi tông ngữ nghĩa (`tone`) có cặp **nền nhạt + chữ đậm** dùng cho icon StatCard/Badge: `primary` (#E0F2FE/#075985), `success` (#F0FDF4/#15803D), `warning` (#FFFBEB/#B45309), `error` (#FEF2F2/#B91C1C), `info` (#ECFEFF/#0E7490), `neutral` (#F1F5F9/#334155).
 
 ### 2.2 Typography
 
@@ -109,6 +112,8 @@ Do: dùng chung cho mọi bảng/chi tiết. Don't: tự `switch(status)` tô m�
 | `action` | `ReactNode` | — | VD nút "+ Thêm khách hàng" |
 | `compact` | `boolean` | `false` | Dùng trong card nhỏ/bảng |
 
+Ảnh minh họa: `EmptyIllustration` (SVG tự vẽ trong `components/illustrations.tsx`, aria-hidden).
+
 Phân biệt 2 loại empty: *chưa có dữ liệu* (có nút tạo) và *không có kết quả lọc* (có nút "Xóa bộ lọc").
 
 ### 3.5 ErrorState
@@ -137,6 +142,12 @@ A11y: vùng lỗi có `role="alert"` để screen reader đọc ngay.
 - Link "Bỏ qua tới nội dung chính" (skip link) là phần tử focus đầu tiên.
 - Sidebar thu gọn: tooltip hiện tên mục khi hover icon.
 
+### 4.1b Trang công khai & 3D (phiên bản 2)
+- `AuthLayout` (đăng nhập, đăng ký, quên mật khẩu, tra cứu bảo hành): panel navy bên trái có **cảnh 3D three.js** (`components/three/repairScene.ts`) – điện thoại hiển thị tiến độ phiếu + linh kiện bay quanh, nghiêng theo con trỏ; tiêu đề và 3 thẻ kính mờ (glassmorphism) nêu tính năng – không dùng số liệu giả.
+- Quy tắc 3D: chỉ tải ở màn hình ≥ 1024px qua `React.lazy` (chunk riêng ~142 KB gzip); `setAnimationLoop` dừng khi tab ẩn/khung ra khỏi màn hình; `dispose()` toàn bộ tài nguyên GPU khi rời trang; *giảm chuyển động* → một khung hình tĩnh; lỗi tải/WebGL → `Scene3DBoundary` ẩn cảnh, trang vẫn dùng được; canvas `aria-hidden`.
+- Mobile: dải thương hiệu navy gọn thay cho panel 3D.
+- Dashboard: banner chào mừng navy + `WorkbenchIllustration`; trang 404: `LostDeviceIllustration`.
+
 ### 4.2 Form
 - React Hook Form + Zod schema đặt cạnh feature (`features/auth/schemas.ts`).
 - Lỗi hiện dưới field (AntD `Form.Item validateStatus/help`); lỗi `fieldErrors` từ API được map vào đúng field; lỗi chung hiện `Alert` trên đầu form.
@@ -154,7 +165,7 @@ A11y: vùng lỗi có `role="alert"` để screen reader đọc ngay.
 
 | ✅ Do | ❌ Don't |
 |---|---|
-| Lấy màu từ token / class Tailwind (`text-primary`, `bg-surface`) | Viết `#4F46E5` trong component |
+| Lấy màu từ token / class Tailwind (`text-primary`, `bg-surface`) | Viết `#0369A1` trong component |
 | Dùng `StatusTag` cho mọi enum có màu | Tô màu trạng thái thủ công ở từng trang |
 | Hiển thị skeleton đúng hình dạng nội dung | Spinner toàn trang khi chỉ một bảng đang tải |
 | Nút icon-only có `aria-label` | Dùng `div onClick` cho phần tử bấm được |
