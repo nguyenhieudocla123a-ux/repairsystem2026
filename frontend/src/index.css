@@ -53,6 +53,14 @@
     background: var(--rf-bg);
     -webkit-font-smoothing: antialiased;
   }
+  /* Không có preflight → phần tử form tự dựng (button thẻ Kanban, StatCard...) không kế thừa font Inter */
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
   .tabular-nums {
     font-variant-numeric: tabular-nums;
   }

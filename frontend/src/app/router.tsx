@@ -8,6 +8,16 @@ import { RegisterPage } from '@/features/auth/pages/RegisterPage'
 import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage'
 import { DashboardPage } from '@/features/dashboard/pages/DashboardPage'
 import { STAFF_SCOPE, UsersPage } from '@/features/users/pages/UsersPage'
+import { CustomerDetailPage } from '@/features/customers/pages/CustomerDetailPage'
+import { CustomersPage } from '@/features/customers/pages/CustomersPage'
+import { DevicesPage } from '@/features/devices/pages/DevicesPage'
+import { MyDevicesPage } from '@/features/portal/pages/MyDevicesPage'
+import { MyRepairsPage } from '@/features/portal/pages/MyRepairsPage'
+import { ReceptionPage } from '@/features/repairs/pages/ReceptionPage'
+import { RepairDetailPage } from '@/features/repairs/pages/RepairDetailPage'
+import { RepairRequestsPage } from '@/features/repairs/pages/RepairRequestsPage'
+import { RepairsPage } from '@/features/repairs/pages/RepairsPage'
+import { TasksPage } from '@/features/repairs/pages/TasksPage'
 import { AppLayout, type RouteHandle } from '@/layouts/AppLayout'
 import { AuthLayout } from '@/layouts/AuthLayout'
 import { ComingSoonPage } from '@/pages/ComingSoonPage'
@@ -23,13 +33,40 @@ const IMPLEMENTED: Record<string, ReactNode> = {
   '/staff': (
     <UsersPage title="Nhân viên & KTV" description="Tài khoản nội bộ: quản trị viên, nhân viên tiếp nhận, kỹ thuật viên." scopeRoles={STAFF_SCOPE} />
   ),
+  '/customers': <CustomersPage />,
+  '/devices': <DevicesPage />,
+  '/reception': <ReceptionPage />,
+  '/repair-requests': <RepairRequestsPage />,
+  '/repairs': <RepairsPage />,
+  '/tasks': <TasksPage />,
+  '/my/devices': <MyDevicesPage />,
+  '/my/repairs': <MyRepairsPage />,
 }
 
-const appChildren: RouteObject[] = APP_ROUTES.map((r) => ({
-  path: r.path.slice(1),
-  handle: { breadcrumb: r.label } satisfies RouteHandle,
-  element: <RoleGuard roles={r.roles}>{IMPLEMENTED[r.path] ?? <ComingSoonPage title={r.label} milestone={r.milestone} />}</RoleGuard>,
-}))
+/** Trang chi tiết lồng dưới trang danh sách → breadcrumb tự thành "Khách hàng / Chi tiết". */
+const DETAIL_PAGES: Record<string, { element: ReactNode; label: string }> = {
+  '/customers': { element: <CustomerDetailPage />, label: 'Chi tiết khách hàng' },
+  '/repairs': { element: <RepairDetailPage />, label: 'Chi tiết phiếu' },
+  '/my/repairs': { element: <RepairDetailPage />, label: 'Theo dõi sửa chữa' },
+}
+
+const appChildren: RouteObject[] = APP_ROUTES.map((r) => {
+  const guard = (node: ReactNode) => <RoleGuard roles={r.roles}>{node}</RoleGuard>
+  const page = guard(IMPLEMENTED[r.path] ?? <ComingSoonPage title={r.label} milestone={r.milestone} />)
+  const detail = DETAIL_PAGES[r.path]
+  return {
+    path: r.path.slice(1),
+    handle: { breadcrumb: r.label } satisfies RouteHandle,
+    ...(detail
+      ? {
+          children: [
+            { index: true, element: page },
+            { path: ':id', handle: { breadcrumb: detail.label } satisfies RouteHandle, element: guard(detail.element) },
+          ],
+        }
+      : { element: page }),
+  }
+})
 
 const devRoutes: RouteObject[] = []
 if (import.meta.env.DEV) {

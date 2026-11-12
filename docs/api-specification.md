@@ -179,6 +179,14 @@ Quy tắc: không tạo `CUSTOMER` qua API này (400); không tự đổi vai tr
 
 ## 7. Repair Orders – `/repair-orders`
 
+**Đã hiện thực (Mốc 5)** – trừ `/deliver` (Mốc 6). Ghi chú thay đổi so với thiết kế:
+- `TransitionRequest` chỉ nhận `INSPECTING, REPAIRING, WAITING_FOR_PARTS, COMPLETED, CANCELLED`; gửi trạng thái thuộc kênh báo giá/bàn giao → `409 INVALID_STATUS_TRANSITION`. `version` sai → `409 CONCURRENT_MODIFICATION`.
+- `RepairOrderDetailResponse` có thêm `canEditReception`, `canAssign`, `canDiagnose` (cờ quyền cho người dùng hiện tại); chưa có `currentQuotationId`, `warrantyId`, `warrantyClaimId` (thêm ở Mốc 6–7).
+- `RepairOrderSummaryResponse` có thêm `customerId`, `deviceId`, `technicianId`.
+- `GET /repair-orders/{id}/history` với CUSTOMER: `changedByName = null` (chỉ trả vai trò).
+- `POST /me/repair-orders/{id}/cancel` body `{ "reason": "..." }`.
+- `GET /customers/{id}/devices` trả mảng (không phân trang); `GET /devices/{id}/repair-orders` trả mảng tối đa 100 phiếu gần nhất.
+
 | Method | Path | Role | Mô tả |
 |---|---|---|---|
 | GET | `/repair-orders?status=&technicianId=&customerId=&priority=&q=&from=&to=&page=&sort=` | A S T¹ | Danh sách; `status` có thể nhiều giá trị `status=REPAIRING,INSPECTING` |

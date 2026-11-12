@@ -1,6 +1,6 @@
 # PROJECT STATUS – RepairFlow
 
-> Cập nhật: 2026-11-12 (Mốc 4) · Ký hiệu: ✅ xong & đã kiểm tra · 🟡 xong nhưng chưa kiểm thử · ⏳ đang làm · ⬜ chưa làm
+> Cập nhật: 2026-11-12 (Mốc 5) · Ký hiệu: ✅ xong & đã kiểm tra · 🟡 xong nhưng chưa kiểm thử · ⏳ đang làm · ⬜ chưa làm
 
 ## Môi trường máy dev (đã kiểm tra 2026-11-12)
 
@@ -23,16 +23,16 @@
 | – | Kiến trúc & API contract | ✅ | `docs/architecture.md`, `docs/api-specification.md` |
 | 4 | Project Initialization (backend) | ✅ | Spring Boot 3.5.16, Java 17, cấu trúc modular monolith |
 | 5 | PostgreSQL & Flyway | ✅ | V1–V6, 16 bảng, 16 entity (`ddl-auto=validate` pass) |
-| 6 | Backend Core APIs | ⬜ | Đã có nền: GlobalExceptionHandler, ApiErrorResponse, PageResponse, CodeGenerator |
+| 6 | Backend Core APIs | ✅ | Customers, Devices, Repair Orders, Repair Requests |
 | 7 | Spring Security & JWT | ✅ | JWT + refresh rotation, blacklist, rate limit, RBAC, quản lý user |
 | 8 | Frontend Layout & Auth | ✅ | Đăng nhập/đăng ký/quên & đặt lại mật khẩu, hồ sơ, quản lý user – nối API thật |
-| 9 | FE–BE Integration | ⏳ | Auth + Users đã nối API thật end-to-end; còn các module nghiệp vụ |
-| 10 | Repair Management | ⬜ | Entity + schema đã có |
+| 9 | FE–BE Integration | ⏳ | Auth, Users, Khách hàng, Thiết bị, Phiếu sửa chữa nối API thật; còn báo giá, kho, bảo hành, dashboard |
+| 10 | Repair Management | ✅ | Máy trạng thái + tiếp nhận + phân công + chẩn đoán (bàn giao ở Mốc 6) |
 | 11 | Quotation & Inventory | ⬜ | Entity + schema đã có; `Part.decreaseStock` có unit test |
 | 12 | Warranty | ⬜ | Entity + schema đã có |
 | 13 | Dashboard & Reports | ⬜ | |
 | 14 | Redis & WebSocket | ⏳ | Redis: blacklist token + rate limit đăng nhập ✅; chưa có cache dashboard, WebSocket |
-| 15 | Unit & Integration Test | ⏳ | Backend: 16 unit + 27 integration · Frontend: 29 test |
+| 15 | Unit & Integration Test | ⏳ | Backend: 49 unit + 43 integration · Frontend: 35 test |
 | 16 | Docker Compose & Deployment | ⏳ | Compose có PostgreSQL + Redis; chưa có container backend/frontend |
 | 17 | Final Review & Documentation | ⬜ | |
 
@@ -112,13 +112,44 @@
 
 **Dữ liệu kiểm thử còn lại trong DB dev:** 1 tài khoản KTV `ktv.kiemthu@repairflow.local` tạo khi test giao diện (có thể khóa trong trang Người dùng).
 
+## Mốc 5 – Checklist hoàn thành (2026-11-12)
+
+**Backend**
+- [x] Khách hàng: tìm kiếm (mã/tên/SĐT/email), chi tiết + thống kê, CRUD (xóa bị chặn nếu đã có phiếu), kích hoạt tài khoản cổng khách
+- [x] Thiết bị: CRUD, serial duy nhất không phân biệt hoa thường, lịch sử sửa chữa; khách tự quản lý thiết bị (`/me/devices`)
+- [x] `RepairStatusPolicy`: đồ thị 17 cạnh + kênh (thủ công / báo giá / bàn giao) + quyền theo vai trò & quan hệ với phiếu + điều kiện (phải có KTV mới kiểm tra, phải có phương án mới hoàn thành, hủy phải có lý do)
+- [x] Phiếu sửa chữa: tạo tại quầy, sửa thông tin (optimistic lock), phân công KTV (audit), chẩn đoán, chuyển trạng thái, lịch sử, tìm theo mã, lọc trạng thái/KTV/ưu tiên/ngày
+- [x] Yêu cầu online: khách gửi/hủy; nhân viên tiếp nhận (chuyển thành phiếu) / từ chối
+- [x] Phân quyền theo tài nguyên: KTV chỉ phiếu được giao, khách chỉ dữ liệu của mình (ngoài phạm vi → 404)
+
+**Frontend**
+- [x] Khách hàng (danh sách, chi tiết: thống kê, thiết bị, lịch sử, tạo tài khoản), Thiết bị
+- [x] Wizard tiếp nhận 4 bước (tại quầy hoặc từ yêu cầu online, tạo nhanh khách/thiết bị trong wizard)
+- [x] Danh sách phiếu (bộ lọc, cảnh báo trễ hẹn), chi tiết phiếu (tiến độ, nút theo `allowedTransitions`, chẩn đoán, phân công, sửa tiếp nhận, timeline)
+- [x] Kanban công việc của KTV; Yêu cầu online (nhân viên)
+- [x] Cổng khách: Thiết bị của tôi, Sửa chữa của tôi (tiến độ + yêu cầu đã gửi + gửi yêu cầu mới), theo dõi phiếu
+
+**Đã kiểm thử thật:**
+
+| Kiểm tra | Kết quả |
+|---|---|
+| `mvnw verify` – 49 unit (33 cho máy trạng thái: đủ 17 cạnh hợp lệ, không cạnh thừa, kênh, vai trò, điều kiện) + 43 integration (RepairFlowIT: workflow, 409 chuyển sai/version cũ, phân quyền KTV/khách, yêu cầu online, trùng SĐT/serial) | ✅ 92/92 |
+| Frontend `tsc`, `oxlint`, `vitest` 35 test, `vite build` | ✅ |
+| Trình duyệt end-to-end 3 vai trò: khách thêm thiết bị → gửi yêu cầu `RQ-2026-000001` → nhân viên tiếp nhận qua wizard (điền sẵn), phân công KTV → phiếu `RO-2026-000001` → KTV thấy trên Kanban → Bắt đầu kiểm tra → lưu chẩn đoán → khách thấy tiến độ "Đang kiểm tra" + lịch sử | ✅ |
+
+**Lỗi tìm thấy & đã sửa trong mốc này:** thanh tiến độ bị ngắt từng chữ ở màn hình ~750px; nút tự dựng (thẻ Kanban, StatCard) không dùng font Inter do không có preflight; trang xác nhận tiếp nhận thiếu tên KTV; API lịch sử trả tên nhân viên cho khách (giao diện ẩn nhưng API vẫn lộ – đã ẩn ở backend + test).
+
+**Dữ liệu tạo khi test giao diện (DB dev):** thiết bị "iPhone 13 của tôi" của khách demo, yêu cầu `RQ-2026-000001`, phiếu `RO-2026-000001` (đang kiểm tra).
+
+**Chưa làm trong mốc này (theo kế hoạch):** báo giá, xuất kho, bàn giao/thanh toán (Mốc 6); bảo hành, thông báo, dashboard (Mốc 7). Trang chi tiết phiếu hiển thị gợi ý bước tiếp theo, ghi rõ chức năng nào có ở mốc sau.
+
 ## Lộ trình theo mốc
 
 1. ✅ Phân tích nghiệp vụ + ERD + UI/UX
 2. ✅ Khởi tạo Backend + PostgreSQL + Flyway + Docker Compose cho DB/Redis
 3. ✅ Khởi tạo Frontend + Design System + Dashboard Layout
 4. ✅ Authentication + JWT + tích hợp đăng nhập + quản lý người dùng
-5. ⬜ Customers, Devices, Repair Management
+5. ✅ Customers, Devices, Repair Management
 6. ⬜ Quotation + Inventory
 7. ⬜ Warranty + Notification (WebSocket) + Dashboard
 8. ⬜ Testing + Docker hoàn chỉnh + tài liệu
@@ -130,4 +161,3 @@ Hiện tại: **không có**.
 ## Vấn đề mở
 
 - Production chưa có cách tạo ADMIN đầu tiên (dev dùng DemoDataSeeder) – làm ở Mốc 8 cùng Docker.
-- Kích hoạt tài khoản cổng khách cho hồ sơ có sẵn (`POST /customers/{id}/account`) làm cùng module Customers ở Mốc 5.

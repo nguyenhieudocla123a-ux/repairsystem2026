@@ -1,5 +1,6 @@
 import type { StatusConfig } from '@/components/StatusTag'
 import type { RepairPriority, RepairStatus } from '@/types/enums'
+import type { RepairRequestStatus } from '../repairsApi'
 
 /** Nguồn duy nhất cho nhãn + màu trạng thái phiếu (docs/ui-ux-design.md §1.3). */
 export const REPAIR_STATUS_CONFIG: StatusConfig<RepairStatus> = {
@@ -20,4 +21,11 @@ export const REPAIR_PRIORITY_CONFIG: StatusConfig<RepairPriority> = {
   NORMAL: { label: 'Thường', color: 'blue' },
   HIGH: { label: 'Cao', color: 'orange' },
   URGENT: { label: 'Khẩn cấp', color: 'red' },
+}
+
+export const REQUEST_STATUS_CONFIG: StatusConfig<RepairRequestStatus> = {
+  PENDING: { label: 'Chờ tiếp nhận', color: 'gold' },
+  CONVERTED: { label: 'Đã tạo phiếu', color: 'green' },
+  REJECTED: { label: 'Đã từ chối', color: 'red' },
+  CANCELLED: { label: 'Khách đã hủy', color: 'default' },
 }
