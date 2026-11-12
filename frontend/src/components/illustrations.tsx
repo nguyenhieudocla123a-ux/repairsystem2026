@@ -100,3 +100,39 @@ export function LostDeviceIllustration({ className = 'h-48 w-auto' }: { classNam
     </svg>
   )
 }
+
+/** Không có quyền: cửa tủ đồ nghề khóa bằng ổ khóa. */
+export function LockedIllustration({ className = 'h-40 w-auto' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 200 180" className={className} aria-hidden="true" fill="none">
+      <ellipse cx="100" cy="166" rx="60" ry="7" fill="#E2E8F0" />
+      <rect x="44" y="30" width="112" height="130" rx="10" fill="#1E293B" stroke="#475569" strokeWidth="3" />
+      <rect x="56" y="44" width="88" height="44" rx="4" fill="#0F172A" />
+      <rect x="56" y="98" width="88" height="48" rx="4" fill="#0F172A" />
+      <rect x="64" y="58" width="30" height="5" rx="2.5" fill="#334155" />
+      <rect x="64" y="112" width="40" height="5" rx="2.5" fill="#334155" />
+      <path d="M86 92V80a14 14 0 0 1 28 0v12" stroke="#CBD5E1" strokeWidth="7" strokeLinecap="round" />
+      <rect x="78" y="90" width="44" height="36" rx="8" fill={AMBER} />
+      <circle cx="100" cy="104" r="5" fill="#0B1220" />
+      <rect x="98" y="106" width="4" height="10" rx="2" fill="#0B1220" />
+      <circle cx="168" cy="40" r="3" fill={SKY} />
+    </svg>
+  )
+}
+
+/** Lỗi tải dữ liệu: phích cắm rời khỏi ổ. */
+export function UnpluggedIllustration({ className = 'h-28 w-auto' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 200 120" className={className} aria-hidden="true" fill="none">
+      <path d="M8 70h52" stroke="#94A3B8" strokeWidth="5" strokeLinecap="round" />
+      <rect x="58" y="54" width="34" height="32" rx="7" fill="#CBD5E1" />
+      <rect x="92" y="60" width="12" height="5" rx="2" fill="#94A3B8" />
+      <rect x="92" y="75" width="12" height="5" rx="2" fill="#94A3B8" />
+      <rect x="124" y="46" width="40" height="48" rx="9" fill="#1E293B" stroke="#475569" strokeWidth="2" />
+      <rect x="136" y="60" width="4" height="10" rx="2" fill="#0B1220" />
+      <rect x="148" y="60" width="4" height="10" rx="2" fill="#0B1220" />
+      <path d="M164 70h28" stroke="#475569" strokeWidth="5" strokeLinecap="round" />
+      <path d="M110 40l4-10M116 46l9-6M108 50l-4-11" stroke={AMBER} strokeWidth="3" strokeLinecap="round" />
+    </svg>
+  )
+}

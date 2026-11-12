@@ -42,7 +42,7 @@ export function AuthLayout() {
           className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgb(7_11_20/0.85)_0%,rgb(7_11_20/0.35)_45%,transparent_70%),linear-gradient(0deg,rgb(7_11_20/0.9)_0%,transparent_35%)]"
         />
 
-        <div className="pointer-events-none relative z-10 flex h-full flex-col p-10 xl:p-14">
+        <div data-enter className="pointer-events-none relative z-10 flex h-full flex-col p-10 xl:p-14">
           <Link to="/login" className="pointer-events-auto flex w-fit items-center gap-3 text-white no-underline">
             <img src="/favicon.svg" alt="" className="size-10" />
             <span className="text-xl font-bold tracking-tight">RepairFlow</span>

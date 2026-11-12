@@ -58,6 +58,107 @@
   }
 }
 
+/*
+ * Lớp chuyển động thống nhất (skill design-taste-frontend – motion.md):
+ * hover 150ms vào / 120ms ra, bấm 90ms, một đường cong ease-out; chỉ transform/opacity/màu, không animate kích thước.
+ * Dịch chuyển chỉ cho con trỏ chính xác + không bật giảm chuyển động; giảm chuyển động → chỉ đổi màu.
+ */
+:root {
+  --m-in: 150ms;
+  --m-out: 120ms;
+  --m-press: 90ms;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-enter: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Không đặt trong @layer: style không thuộc layer nào thắng mọi layer (kể cả utilities của Tailwind như border-border) */
+  @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+    /* Nút: nhích lên 1px khi hover, lún xuống 1px + scale .985 khi bấm (nút chữ/link không nhích) */
+    .ant-btn:not(.ant-btn-variant-text):not(.ant-btn-variant-link):not(:disabled) {
+      transition:
+        transform var(--m-out) var(--ease),
+        background-color var(--m-out) var(--ease),
+        border-color var(--m-out) var(--ease),
+        color var(--m-out) var(--ease),
+        box-shadow var(--m-out) var(--ease);
+    }
+    .ant-btn:not(.ant-btn-variant-text):not(.ant-btn-variant-link):not(:disabled):hover {
+      transform: translateY(-1px);
+      transition-duration: var(--m-in);
+    }
+    .ant-btn:not(.ant-btn-variant-text):not(.ant-btn-variant-link):not(:disabled):active {
+      transform: translateY(1px) scale(0.985);
+      transition-duration: var(--m-press);
+    }
+    /* Thẻ có liên kết (StatCard bấm được, thẻ .rf-card-link): nâng 2px, viền đậm một bậc, bóng mềm */
+    .rf-card-link {
+      transition:
+        transform var(--m-out) var(--ease),
+        border-color var(--m-out) var(--ease),
+        box-shadow var(--m-out) var(--ease);
+    }
+    .rf-card-link:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px -12px rgb(15 23 42 / 0.1);
+      transition-duration: 180ms;
+    }
+    .rf-card-link:active {
+      transform: translateY(0) scale(0.995);
+      transition-duration: var(--m-press);
+    }
+  }
+
+  /* Đổi màu khi hover/focus luôn có (kể cả giảm chuyển động) – chỉ phần dịch chuyển mới phụ thuộc chuyển động */
+  .rf-card-link {
+    /* Khai báo đủ cả transform/box-shadow: quy tắc này đứng sau khối @media nên sẽ thắng phần transition ở đó */
+    transition:
+      transform var(--m-out) var(--ease),
+      border-color var(--m-out) var(--ease),
+      box-shadow var(--m-out) var(--ease);
+  }
+  .rf-card-link:hover,
+  .rf-card-link:focus-visible {
+    border-color: rgb(3 105 161 / 0.45);
+    transition-duration: var(--m-in);
+  }
+
+  /* Liên kết trong nội dung: gạch chân "vẽ" từ trái sang phải (một kiểu duy nhất cho cả app) */
+  .rf-content a:not([class*='ant-']):not(.no-underline) {
+    text-decoration: none;
+    background: linear-gradient(currentColor, currentColor) no-repeat 0 100% / 0 1px;
+    transition: background-size var(--m-out) var(--ease);
+  }
+  .rf-content a:not([class*='ant-']):not(.no-underline):hover,
+  .rf-content a:not([class*='ant-']):not(.no-underline):focus-visible {
+    background-size: 100% 1px;
+    transition-duration: var(--m-in);
+  }
+
+  /* Hiệu ứng vào trang (một lần khi tải): khối nổi 12px + hiện dần; không dùng khi giảm chuyển động */
+  @media (prefers-reduced-motion: no-preference) {
+    [data-enter] > * {
+      animation: rf-rise 520ms var(--ease-enter) both;
+    }
+    [data-enter] > *:nth-child(2) { animation-delay: 60ms; }
+    [data-enter] > *:nth-child(3) { animation-delay: 120ms; }
+    [data-enter] > *:nth-child(4) { animation-delay: 180ms; }
+    [data-enter] > *:nth-child(n + 5) { animation-delay: 240ms; }
+  }
+  @keyframes rf-rise {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  /* Màn hình cảm ứng: vùng bấm tối thiểu 44px cho nút và ô nhập */
+  @media (pointer: coarse) {
+    .ant-btn:not(.ant-btn-sm),
+    .ant-input-affix-wrapper,
+    .ant-select-single:not(.ant-select-sm) .ant-select-selector,
+    .ant-picker {
+      min-height: 44px;
+    }
+  }
+
 @layer base {
   html,
   body,

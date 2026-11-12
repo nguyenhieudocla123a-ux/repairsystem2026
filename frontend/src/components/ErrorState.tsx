@@ -1,6 +1,7 @@
 import { ReloadOutlined } from '@ant-design/icons'
 import { Button, Result } from 'antd'
 import { getErrorMessage } from '@/utils/errors'
+import { UnpluggedIllustration } from './illustrations'
 
 export interface ErrorStateProps {
   error: unknown
@@ -13,7 +14,7 @@ export function ErrorState({ error, onRetry, title = 'Không tải được dữ
   return (
     <div role="alert">
       <Result
-        status="error"
+        icon={<UnpluggedIllustration className="mx-auto h-24 w-auto" />}
         title={<span className="text-base font-semibold">{title}</span>}
         subTitle={getErrorMessage(error)}
         extra={

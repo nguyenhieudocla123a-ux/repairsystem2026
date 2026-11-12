@@ -176,8 +176,8 @@ export function createRepairScene(container: HTMLElement, { reducedMotion, layou
   const root = new THREE.Group()
   // Cụm 3D lệch phải, chừa chỗ cho tiêu đề bên trái
   if (layout === 'hero') {
-    root.scale.setScalar(0.8)
-    root.position.set(1.05, 0.05, 0)
+    root.scale.setScalar(0.66)
+    root.position.set(0.9, 0.45, 0)
   } else {
     root.scale.setScalar(0.62)
   }

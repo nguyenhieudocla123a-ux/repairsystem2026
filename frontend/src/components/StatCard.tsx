@@ -21,7 +21,7 @@ export function StatCard({ label, value, icon, tone = 'primary', hint, loading =
       {icon && (
         <span
           aria-hidden="true"
-          className={`flex size-11 shrink-0 items-center justify-center rounded-xl text-xl ${toneClasses[tone]}`}
+          className={`flex size-11 shrink-0 items-center justify-center rounded-xl text-xl @max-[15rem]:hidden ${toneClasses[tone]}`}
         >
           {icon}
         </span>
@@ -47,7 +47,7 @@ export function StatCard({ label, value, icon, tone = 'primary', hint, loading =
         type="button"
         onClick={onClick}
         aria-busy={loading}
-        className={`${base} focus-ring cursor-pointer motion-safe:transition-colors motion-safe:duration-150 hover:border-primary/40 hover:shadow-overlay`}
+        className={`${base} rf-card-link focus-ring cursor-pointer`}
       >
         {content}
       </button>

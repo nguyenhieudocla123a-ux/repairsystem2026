@@ -37,7 +37,7 @@ export function LoginPage() {
   return (
     <>
       <h1 className="m-0 text-2xl font-bold text-text">Đăng nhập</h1>
-      <p className="mt-2 mb-8 text-text-secondary">Chào mừng trở lại! Vui lòng nhập thông tin tài khoản.</p>
+      <p className="mt-2 mb-8 text-text-secondary">Nhân viên dùng tài khoản cửa hàng cấp; khách dùng email đã đăng ký để theo dõi máy đang sửa.</p>
 
       {formError && <Alert type="error" showIcon title={formError} className="mb-5" role="alert" />}
 

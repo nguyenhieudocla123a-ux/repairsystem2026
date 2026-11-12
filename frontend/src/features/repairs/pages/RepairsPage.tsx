@@ -91,7 +91,7 @@ export function RepairsPage() {
         extra={role !== 'TECHNICIAN' && <Button type="primary" icon={<InboxOutlined />} onClick={() => navigate('/reception')}>Tiếp nhận thiết bị</Button>}
       />
       <Card styles={{ body: { padding: 0 } }}>
-        <div className="grid gap-3 border-b border-border p-4 md:grid-cols-2 xl:grid-cols-5">
+        <div className="grid gap-3 border-b border-border p-4 md:grid-cols-2 xl:grid-cols-12">
           <Input
             aria-label="Tìm phiếu"
             placeholder="Mã phiếu, khách, SĐT, serial..."
@@ -99,10 +99,11 @@ export function RepairsPage() {
             allowClear
             value={keyword}
             onChange={(e) => resetPage(setKeyword)(e.target.value)}
-            className="xl:col-span-2"
+            className="md:col-span-2 xl:col-span-3"
           />
           <Select<RepairStatus[]>
             aria-label="Lọc trạng thái"
+            className="xl:col-span-2"
             mode="multiple"
             maxTagCount="responsive"
             placeholder="Tất cả trạng thái"
@@ -113,6 +114,7 @@ export function RepairsPage() {
           />
           <Select<RepairPriority>
             aria-label="Lọc ưu tiên"
+            className="xl:col-span-2"
             placeholder="Mọi mức ưu tiên"
             allowClear
             value={priority}
@@ -120,16 +122,18 @@ export function RepairsPage() {
             options={(Object.keys(REPAIR_PRIORITY_CONFIG) as RepairPriority[]).map((p) => ({ value: p, label: REPAIR_PRIORITY_CONFIG[p].label }))}
           />
           {role !== 'TECHNICIAN' ? (
-            <TechnicianSelect value={technicianId} onChange={resetPage(setTechnicianId)} placeholder="Mọi kỹ thuật viên" />
+            <div className="xl:col-span-2 [&>.ant-select]:w-full">
+              <TechnicianSelect value={technicianId} onChange={resetPage(setTechnicianId)} placeholder="Mọi kỹ thuật viên" />
+            </div>
           ) : (
-            <span />
+            <span className="hidden xl:col-span-2 xl:block" />
           )}
           <DatePicker.RangePicker
             aria-label="Khoảng ngày tiếp nhận"
             format="DD/MM/YYYY"
             placeholder={['Từ ngày', 'Đến ngày']}
             onChange={(v) => resetPage(setRange)(v?.[0] && v[1] ? [v[0].format('YYYY-MM-DD'), v[1].format('YYYY-MM-DD')] : null)}
-            className="md:col-span-2 xl:col-span-2"
+            className="md:col-span-2 xl:col-span-3"
           />
         </div>
         {error && !loading ? (

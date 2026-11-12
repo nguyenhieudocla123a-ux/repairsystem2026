@@ -92,7 +92,7 @@ export function AppShell(props: AppShellProps) {
           onLogout={props.onLogout}
           notificationContent={props.notificationContent}
         />
-        <Content id="main-content" tabIndex={-1} className="outline-none">
+        <Content id="main-content" tabIndex={-1} className="rf-content outline-none">
           <div className="mx-auto w-full max-w-[1440px] p-4 md:p-6">{props.children}</div>
         </Content>
       </Layout>

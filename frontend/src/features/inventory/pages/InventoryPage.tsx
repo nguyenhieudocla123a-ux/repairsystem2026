@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAppSelector } from '@/app/hooks'
 import { EmptyState } from '@/components/EmptyState'
+import { PartArt } from '@/components/DeviceArt'
+import { guessPartKind } from '@/components/partKind'
 import { ErrorState } from '@/components/ErrorState'
 import { MoneyText } from '@/components/MoneyText'
 import { PageHeader } from '@/components/PageHeader'
@@ -63,9 +65,12 @@ function PartsTab() {
     {
       title: 'Linh kiện',
       render: (_, p) => (
-        <div className={p.active ? '' : 'opacity-60'}>
-          <div className="font-medium text-text">{p.name} {!p.active && <Tag className="ml-1">Ngừng KD</Tag>}</div>
-          <div className="font-mono text-xs text-text-secondary">{p.sku}{p.category && <span className="font-sans"> · {p.category}</span>}</div>
+        <div className={`flex min-w-0 items-center gap-3 ${p.active ? '' : 'opacity-60'}`}>
+          <PartArt kind={guessPartKind(p.category, p.name)} size={40} />
+          <div className="min-w-0">
+            <div className="font-medium text-text">{p.name} {!p.active && <Tag className="ml-1">Ngừng KD</Tag>}</div>
+            <div className="font-mono text-xs text-text-secondary">{p.sku}{p.category && <span className="font-sans"> · {p.category}</span>}</div>
+          </div>
         </div>
       ),
     },

@@ -3,6 +3,7 @@ import { Button, Card, Input, Select, Table, type TableProps } from 'antd'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { EmptyState } from '@/components/EmptyState'
+import { DeviceArt } from '@/components/DeviceArt'
 import { ErrorState } from '@/components/ErrorState'
 import { PageHeader } from '@/components/PageHeader'
 import { useAsyncData } from '@/hooks/useAsyncData'
@@ -26,9 +27,12 @@ export function DevicesPage() {
       title: 'Thiết bị',
       dataIndex: 'name',
       render: (_, d) => (
-        <div>
-          <div className="font-medium text-text">{d.name}</div>
-          <div className="text-xs text-text-secondary">{[d.brand, d.model].filter(Boolean).join(' ') || DEVICE_TYPE_LABELS[d.deviceType]}</div>
+        <div className="flex min-w-0 items-center gap-3">
+          <DeviceArt type={d.deviceType} size={40} />
+          <div className="min-w-0">
+            <div className="font-medium text-text">{d.name}</div>
+            <div className="text-xs text-text-secondary">{[d.brand, d.model].filter(Boolean).join(' ') || DEVICE_TYPE_LABELS[d.deviceType]}</div>
+          </div>
         </div>
       ),
     },

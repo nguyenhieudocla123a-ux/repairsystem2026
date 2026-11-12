@@ -142,6 +142,11 @@ A11y: vùng lỗi có `role="alert"` để screen reader đọc ngay.
 - Link "Bỏ qua tới nội dung chính" (skip link) là phần tử focus đầu tiên.
 - Sidebar thu gọn: tooltip hiện tên mục khi hover icon.
 
+### 4.1c Lớp chuyển động & hình ảnh (phiên bản 2.1)
+- **Chuyển động** (theo skill *design-taste-frontend*, `index.css`): hover 150ms vào / 120ms ra, bấm 90ms, một đường cong ease-out. Nút nhích lên 1px khi hover, lún 1px + scale .985 khi bấm (trừ nút dạng chữ/link); thẻ bấm được (`.rf-card-link`, VD StatCard) nâng 2px + viền đậm một bậc; liên kết trong nội dung có gạch chân "vẽ" từ trái sang phải (một kiểu duy nhất); khối có `data-enter` nổi lên một lần khi tải trang. Dịch chuyển chỉ với chuột + không bật *giảm chuyển động*; khi giảm chuyển động chỉ đổi màu. Lớp này **không nằm trong @layer** để thắng class tiện ích của Tailwind.
+- **Màn hình cảm ứng**: nút, ô nhập, select, date picker tối thiểu 44px.
+- **Hình ảnh** (`components/DeviceArt.tsx`, SVG tự vẽ): `DeviceArt` theo loại thiết bị (điện thoại, laptop, máy tính bảng, máy bàn, đồng hồ, khác) – dùng ở danh sách thiết bị, Thiết bị của tôi, chi tiết phiếu, Bảo hành của tôi; `PartArt` theo loại linh kiện, đoán từ danh mục/tên (`guessPartKind`: màn hình, pin, camera, cổng sạc, loa, bàn phím, bo mạch, bộ nhớ, cáp) – dùng ở Kho; `InitialAvatar` chữ cái đầu, màu cố định theo tên – khách hàng, người dùng, thẻ khách trong chi tiết phiếu. Trang 403: `LockedIllustration`; lỗi tải dữ liệu: `UnpluggedIllustration`.
+
 ### 4.1b Trang công khai & 3D (phiên bản 2)
 - `AuthLayout` (đăng nhập, đăng ký, quên mật khẩu, tra cứu bảo hành): panel navy bên trái có **cảnh 3D three.js** (`components/three/repairScene.ts`) – điện thoại hiển thị tiến độ phiếu + linh kiện bay quanh, nghiêng theo con trỏ; tiêu đề và 3 thẻ kính mờ (glassmorphism) nêu tính năng – không dùng số liệu giả.
 - Vị trí 3D: panel trái ở ≥ 1024px; dải cao 240px phía trên form ở 640–1023px; banner dashboard ở ≥ 640px (minh họa SVG `WorkbenchIllustration` khi đang tải/lỗi); điện thoại < 640px không tải 3D.

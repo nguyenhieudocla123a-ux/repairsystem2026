@@ -1,10 +1,11 @@
-import { CarryOutOutlined, EditOutlined, UserSwitchOutlined } from '@ant-design/icons'
-import { Alert, App, Button, Card, DatePicker, Descriptions, Form, Input, Modal, Select, Skeleton, Space, Tabs } from 'antd'
+import { CarryOutOutlined, EditOutlined, SafetyCertificateOutlined, UserSwitchOutlined } from '@ant-design/icons'
+import { Alert, App, Button, Card, DatePicker, Descriptions, Form, Input, Modal, Select, Skeleton, Space, Tabs, Tag } from 'antd'
 import dayjs from 'dayjs'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useAppSelector } from '@/app/hooks'
 import { ErrorState } from '@/components/ErrorState'
+import { DeviceArt, InitialAvatar } from '@/components/DeviceArt'
 import { PageHeader } from '@/components/PageHeader'
 import { DEVICE_TYPE_LABELS } from '@/features/devices/devicesApi'
 import { TechnicianSelect } from '@/features/users/components/TechnicianSelect'
@@ -208,9 +209,13 @@ export function RepairDetailPage() {
         title={
           <span className="flex flex-wrap items-center gap-2">
             <span className="font-mono">{order.code}</span>
-            <RepairStatusTag status={order.status} />
-            {!isCustomer && <RepairPriorityTag priority={order.priority} />}
-            {order.warrantyRepair && <span className="text-sm font-normal text-success">Sửa bảo hành</span>}
+            <RepairStatusTag status={order.status} size="md" />
+            {!isCustomer && <RepairPriorityTag priority={order.priority} size="md" />}
+            {order.warrantyRepair && (
+              <Tag color="cyan" icon={<SafetyCertificateOutlined />} className="m-0 px-2.5 py-0.5 text-sm font-medium">
+                Sửa bảo hành
+              </Tag>
+            )}
           </span>
         }
         description={`${order.device.name} · Tiếp nhận ${formatDateTime(order.receivedAt)}`}
@@ -293,18 +298,28 @@ export function RepairDetailPage() {
 
         <div className="flex flex-col gap-4">
           <Card title="Khách hàng" size="small">
-            <div className="font-medium">
-              {isCustomer ? order.customer.fullName : <Link to={`/customers/${order.customer.id}`}>{order.customer.fullName}</Link>}
+            <div className="flex items-start gap-3">
+              <InitialAvatar name={order.customer.fullName} size={44} />
+              <div className="min-w-0">
+                <div className="font-medium">
+                  {isCustomer ? order.customer.fullName : <Link to={`/customers/${order.customer.id}`}>{order.customer.fullName}</Link>}
+                </div>
+                <div className="text-sm text-text-secondary tabular-nums">{order.customer.phone}</div>
+                {order.customer.email && <div className="truncate text-sm text-text-secondary">{order.customer.email}</div>}
+              </div>
             </div>
-            <div className="text-sm text-text-secondary tabular-nums">{order.customer.phone}</div>
-            {order.customer.email && <div className="text-sm text-text-secondary">{order.customer.email}</div>}
           </Card>
           <Card title="Thiết bị" size="small">
-            <div className="font-medium">{order.device.name}</div>
-            <div className="text-sm text-text-secondary">
-              {DEVICE_TYPE_LABELS[order.device.deviceType]} · {[order.device.brand, order.device.model].filter(Boolean).join(' ') || '—'}
+            <div className="flex items-start gap-3">
+              <DeviceArt type={order.device.deviceType} size={56} />
+              <div className="min-w-0">
+                <div className="font-medium">{order.device.name}</div>
+                <div className="text-sm text-text-secondary">
+                  {DEVICE_TYPE_LABELS[order.device.deviceType]} · {[order.device.brand, order.device.model].filter(Boolean).join(' ') || '—'}
+                </div>
+                {order.device.serialNumber && <div className="font-mono text-xs text-text-muted">{order.device.serialNumber}</div>}
+              </div>
             </div>
-            {order.device.serialNumber && <div className="font-mono text-xs text-text-muted">{order.device.serialNumber}</div>}
           </Card>
           <Card
             title="Kỹ thuật viên"

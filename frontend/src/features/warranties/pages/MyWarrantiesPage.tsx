@@ -2,6 +2,7 @@ import { SafetyCertificateOutlined } from '@ant-design/icons'
 import { Button, Card, List } from 'antd'
 import { useState } from 'react'
 import { EmptyState } from '@/components/EmptyState'
+import { DeviceArt } from '@/components/DeviceArt'
 import { ErrorState } from '@/components/ErrorState'
 import { PageHeader } from '@/components/PageHeader'
 import { DEVICE_TYPE_LABELS } from '@/features/devices/devicesApi'
@@ -35,6 +36,7 @@ export function MyWarrantiesPage() {
                 ]}
               >
                 <List.Item.Meta
+                  avatar={<DeviceArt type={w.device.deviceType} size={52} />}
                   title={
                     <span className="flex flex-wrap items-center gap-2">
                       <span className="font-mono text-sm">{w.code}</span> · {w.device.name}

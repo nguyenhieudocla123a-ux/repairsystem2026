@@ -1,8 +1,9 @@
 import { EditOutlined, KeyOutlined, LockOutlined, MoreOutlined, PlusOutlined, SearchOutlined, UnlockOutlined } from '@ant-design/icons'
-import { App, Avatar, Button, Card, Dropdown, Input, Select, Table, type MenuProps, type TableProps } from 'antd'
+import { App, Button, Card, Dropdown, Input, Select, Table, type MenuProps, type TableProps } from 'antd'
 import { useState } from 'react'
 import { useAppSelector } from '@/app/hooks'
 import { EmptyState } from '@/components/EmptyState'
+import { InitialAvatar } from '@/components/DeviceArt'
 import { ErrorState } from '@/components/ErrorState'
 import { PageHeader } from '@/components/PageHeader'
 import { StatusTag } from '@/components/StatusTag'
@@ -25,9 +26,6 @@ export interface UsersPageProps {
 
 const SORT_FIELDS = new Set(['fullName', 'createdAt', 'lastLoginAt'])
 
-function initials(name: string) {
-  return name.trim().split(/\s+/).pop()?.[0]?.toUpperCase() ?? '?'
-}
 
 /** Quản lý tài khoản – phân trang, lọc, sắp xếp đều chạy ở Backend. */
 export function UsersPage({ title, description, scopeRoles }: UsersPageProps) {
@@ -101,7 +99,7 @@ export function UsersPage({ title, description, scopeRoles }: UsersPageProps) {
       sortOrder: sortOrder('fullName'),
       render: (_, u) => (
         <div className="flex min-w-0 items-center gap-3">
-          <Avatar className="shrink-0 bg-tone-primary-bg font-semibold text-tone-primary-fg">{initials(u.fullName)}</Avatar>
+          <InitialAvatar name={u.fullName} />
           <div className="min-w-0">
             <div className="truncate font-medium text-text">
               {u.fullName} {u.id === currentUserId && <span className="text-xs font-normal text-text-muted">(bạn)</span>}

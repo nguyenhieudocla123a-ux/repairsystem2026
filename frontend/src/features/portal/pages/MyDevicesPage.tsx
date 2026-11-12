@@ -1,8 +1,9 @@
-import { EditOutlined, LaptopOutlined, PlusOutlined, ToolOutlined } from '@ant-design/icons'
+import { EditOutlined, PlusOutlined, ToolOutlined } from '@ant-design/icons'
 import { Button, Card, Skeleton } from 'antd'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { EmptyState } from '@/components/EmptyState'
+import { DeviceArt } from '@/components/DeviceArt'
 import { ErrorState } from '@/components/ErrorState'
 import { PageHeader } from '@/components/PageHeader'
 import { DeviceFormModal } from '@/features/devices/components/DeviceFormModal'
@@ -46,9 +47,7 @@ export function MyDevicesPage() {
               ]}
             >
               <div className="flex items-start gap-3">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-tone-info-bg text-xl text-tone-info-fg" aria-hidden="true">
-                  <LaptopOutlined />
-                </span>
+                <DeviceArt type={d.deviceType} size={56} />
                 <div className="min-w-0">
                   <div className="truncate font-semibold text-text">{d.name}</div>
                   <div className="text-sm text-text-secondary">

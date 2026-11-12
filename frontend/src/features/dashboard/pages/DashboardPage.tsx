@@ -61,7 +61,7 @@ function WelcomeBanner({ name, role }: { name: string; role: string }) {
         className="pointer-events-none absolute inset-0 opacity-[0.06] [background-image:linear-gradient(#fff_1px,transparent_1px),linear-gradient(90deg,#fff_1px,transparent_1px)] [background-size:32px_32px]"
       />
       <div className="relative flex items-center justify-between gap-6">
-        <div className="min-w-0">
+        <div data-enter className="min-w-0">
           <p className="m-0 text-sm text-sky-200">{TODAY_LABEL}</p>
           <h1 className="mt-1 mb-1 text-2xl font-semibold tracking-tight md:text-[28px]">Xin chào, {name}</h1>
           <p className="m-0 text-sm text-slate-300">Bạn đang làm việc với vai trò <span className="font-medium text-white">{role}</span>.</p>

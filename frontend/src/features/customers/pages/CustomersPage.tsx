@@ -3,6 +3,7 @@ import { Button, Card, Input, Table, Tag, type TableProps } from 'antd'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { EmptyState } from '@/components/EmptyState'
+import { InitialAvatar } from '@/components/DeviceArt'
 import { ErrorState } from '@/components/ErrorState'
 import { PageHeader } from '@/components/PageHeader'
 import { useAsyncData } from '@/hooks/useAsyncData'
@@ -32,9 +33,12 @@ export function CustomersPage() {
       dataIndex: 'fullName',
       sorter: true,
       render: (_, c) => (
-        <div className="min-w-0">
-          <div className="font-medium text-text">{c.fullName}</div>
-          <div className="text-xs text-text-secondary">{c.email ?? '—'}</div>
+        <div className="flex min-w-0 items-center gap-3">
+          <InitialAvatar name={c.fullName} />
+          <div className="min-w-0">
+            <div className="font-medium text-text">{c.fullName}</div>
+            <div className="text-xs text-text-secondary">{c.email ?? '—'}</div>
+          </div>
         </div>
       ),
     },
