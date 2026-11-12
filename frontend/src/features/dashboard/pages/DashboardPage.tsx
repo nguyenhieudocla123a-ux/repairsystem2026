@@ -13,12 +13,13 @@ import {
 } from '@ant-design/icons'
 import { Card, DatePicker, List, Table } from 'antd'
 import dayjs, { type Dayjs } from 'dayjs'
-import { useState, type ReactNode } from 'react'
+import { lazy, Suspense, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAppSelector } from '@/app/hooks'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { WorkbenchIllustration } from '@/components/illustrations'
+import { Scene3DBoundary } from '@/components/three/Scene3DBoundary'
 import { StatCard } from '@/components/StatCard'
 import { StatusTag } from '@/components/StatusTag'
 import { REPAIR_PRIORITY_CONFIG, REPAIR_STATUS_CONFIG } from '@/features/repairs/constants/status'
@@ -49,7 +50,9 @@ const TODAY_LABEL = (() => {
   return s.charAt(0).toUpperCase() + s.slice(1)
 })()
 
-/** Banner chào mừng: nền navy + minh họa bàn làm việc (ẩn trên màn hình nhỏ). Giữ một <h1> cho trang. */
+const RepairScene3D = lazy(() => import('@/components/three/RepairScene3D'))
+
+/** Banner chào mừng: nền navy + cảnh 3D (≥ 640px; minh họa SVG khi đang tải hoặc lỗi WebGL). Giữ một <h1> cho trang. */
 function WelcomeBanner({ name, role }: { name: string; role: string }) {
   return (
     <section className="relative mb-6 overflow-hidden rounded-2xl bg-[radial-gradient(120%_120%_at_85%_0%,#0C4A6E_0%,#0B1220_60%)] px-6 py-6 text-white md:px-8">
@@ -63,7 +66,13 @@ function WelcomeBanner({ name, role }: { name: string; role: string }) {
           <h1 className="mt-1 mb-1 text-2xl font-semibold tracking-tight md:text-[28px]">Xin chào, {name}</h1>
           <p className="m-0 text-sm text-slate-300">Bạn đang làm việc với vai trò <span className="font-medium text-white">{role}</span>.</p>
         </div>
-        <WorkbenchIllustration className="-my-4 hidden h-36 w-auto shrink-0 md:block" />
+        <div className="relative -my-6 -mr-4 hidden h-40 w-[220px] shrink-0 sm:block md:h-44 md:w-[340px]">
+          <Scene3DBoundary fallback={<WorkbenchIllustration className="h-full w-auto" />}>
+            <Suspense fallback={<WorkbenchIllustration className="h-full w-auto" />}>
+              <RepairScene3D layout="banner" className="absolute inset-0" />
+            </Suspense>
+          </Scene3DBoundary>
+        </div>
       </div>
     </section>
   )

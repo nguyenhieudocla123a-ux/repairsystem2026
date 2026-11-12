@@ -4,7 +4,7 @@ import { lazy, Suspense, type ReactNode } from 'react'
 import { Link, Outlet } from 'react-router-dom'
 import { Scene3DBoundary } from '@/components/three/Scene3DBoundary'
 
-/** three.js chỉ tải khi màn hình đủ rộng để thấy panel 3D (≥ lg) – chunk riêng. */
+/** three.js chỉ tải khi màn hình ≥ 640px (panel 3D ở ≥ 1024px, dải 3D ở 640–1023px) – chunk riêng. */
 const RepairScene3D = lazy(() => import('@/components/three/RepairScene3D'))
 
 const CURRENT_YEAR = new Date().getFullYear()
@@ -42,7 +42,7 @@ export function AuthLayout() {
           className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgb(7_11_20/0.85)_0%,rgb(7_11_20/0.35)_45%,transparent_70%),linear-gradient(0deg,rgb(7_11_20/0.9)_0%,transparent_35%)]"
         />
 
-        <div className="pointer-events-none relative flex h-full flex-col p-10 xl:p-14">
+        <div className="pointer-events-none relative z-10 flex h-full flex-col p-10 xl:p-14">
           <Link to="/login" className="pointer-events-auto flex w-fit items-center gap-3 text-white no-underline">
             <img src="/favicon.svg" alt="" className="size-10" />
             <span className="text-xl font-bold tracking-tight">RepairFlow</span>
@@ -72,8 +72,16 @@ export function AuthLayout() {
 
       <main className="flex flex-col">
         {/* Mobile/tablet: dải thương hiệu gọn thay cho panel 3D (tiết kiệm pin & dữ liệu) */}
-        <div className={`flex items-center gap-2.5 px-5 py-5 lg:hidden ${brandBg}`}>
-          <Link to="/login" className="flex items-center gap-2.5 text-white no-underline">
+        <div className={`relative overflow-hidden lg:hidden ${brandBg} ${screens.sm ? 'h-60' : ''}`}>
+          {/* Màn hình vừa (640–1023px): dải 3D phía trên form; điện thoại nhỏ: chỉ logo để tiết kiệm pin */}
+          {screens.sm && !screens.lg && (
+            <Scene3DBoundary>
+              <Suspense fallback={null}>
+                <RepairScene3D layout="banner" className="absolute inset-0" />
+              </Suspense>
+            </Scene3DBoundary>
+          )}
+          <Link to="/login" className="relative z-10 flex w-fit items-center gap-2.5 px-5 py-5 text-white no-underline">
             <img src="/favicon.svg" alt="" className="size-9" />
             <span className="text-lg font-bold">RepairFlow</span>
           </Link>

@@ -144,7 +144,8 @@ A11y: vùng lỗi có `role="alert"` để screen reader đọc ngay.
 
 ### 4.1b Trang công khai & 3D (phiên bản 2)
 - `AuthLayout` (đăng nhập, đăng ký, quên mật khẩu, tra cứu bảo hành): panel navy bên trái có **cảnh 3D three.js** (`components/three/repairScene.ts`) – điện thoại hiển thị tiến độ phiếu + linh kiện bay quanh, nghiêng theo con trỏ; tiêu đề và 3 thẻ kính mờ (glassmorphism) nêu tính năng – không dùng số liệu giả.
-- Quy tắc 3D: chỉ tải ở màn hình ≥ 1024px qua `React.lazy` (chunk riêng ~142 KB gzip); `setAnimationLoop` dừng khi tab ẩn/khung ra khỏi màn hình; `dispose()` toàn bộ tài nguyên GPU khi rời trang; *giảm chuyển động* → một khung hình tĩnh; lỗi tải/WebGL → `Scene3DBoundary` ẩn cảnh, trang vẫn dùng được; canvas `aria-hidden`.
+- Vị trí 3D: panel trái ở ≥ 1024px; dải cao 240px phía trên form ở 640–1023px; banner dashboard ở ≥ 640px (minh họa SVG `WorkbenchIllustration` khi đang tải/lỗi); điện thoại < 640px không tải 3D.
+- Quy tắc 3D: tải qua `React.lazy` (chunk riêng ~142 KB gzip); `setAnimationLoop` dừng khi tab ẩn/khung ra khỏi màn hình; `dispose()` toàn bộ tài nguyên GPU khi rời trang; *giảm chuyển động* → không tự chạy, chỉ nghiêng theo chuột (mỗi lần di chuột vẽ 1 khung), có vẽ bù 1 khung sau khi gắn để tránh canvas trống; lỗi tải/WebGL → `Scene3DBoundary` ẩn cảnh, trang vẫn dùng được; canvas `aria-hidden`.
 - Mobile: dải thương hiệu navy gọn thay cho panel 3D.
 - Dashboard: banner chào mừng navy + `WorkbenchIllustration`; trang 404: `LostDeviceIllustration`.
 

@@ -206,6 +206,8 @@
 - [x] App: sidebar có vạch chọn + avatar, card có bóng nhẹ, banner chào mừng dashboard, minh họa SVG cho trạng thái trống và trang 404
 - [x] Kiểm tra: `tsc`, `oxlint`, `vitest` 49 test, `vite build` (three.js ở chunk riêng 142 KB gzip); trình duyệt desktop 1440px + mobile 375px (không tải 3D, không tràn ngang); rời trang công khai → canvas WebGL được gỡ
 
+**Sửa sau phản hồi "không thấy 3D":** máy người dùng bật *giảm chuyển động* và khung xem chỉ rộng 654px (< 1024px) nên cảnh 3D bị ẩn/đứng yên → thêm dải 3D cho màn hình 640–1023px, 3D trong banner dashboard, chế độ giảm chuyển động vẫn nghiêng theo chuột; sửa lỗi canvas vẽ một lần lúc vừa gắn trang không hiện + logo bị lớp WebGL che.
+
 **Lỗi tìm thấy & đã sửa:** cụm 3D quá to đè lên tiêu đề → thu nhỏ, lệch phải, thêm lớp phủ giữ tương phản chữ; chunk 3D tải lỗi làm sập cả trang đăng nhập → bọc `Scene3DBoundary`.
 
 **Ghi chú:** một bản thiết kế lại dở dang từ phiên khác (chưa commit) được cất vào `git stash` (`stash@{0}`) trước khi làm lại – lấy lại bằng `git stash show -p stash@{0}` nếu cần tham khảo.

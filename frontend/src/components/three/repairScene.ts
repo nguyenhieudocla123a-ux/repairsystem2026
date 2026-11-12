@@ -10,10 +10,13 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
  * - Mọi geometry/material tạo MỘT lần trước vòng lặp; vòng lặp chỉ đổi transform.
  * - Vòng lặp dùng renderer.setAnimationLoop → tạm dừng (null) khi tab ẩn hoặc canvas ra khỏi màn hình.
  * - dispose() giải phóng toàn bộ geometry, material, texture, môi trường PMREM và renderer.
- * - Giảm chuyển động: chỉ vẽ một khung hình tĩnh, không có vòng lặp.
+ * - Giảm chuyển động: KHÔNG có vòng lặp tự chạy; cảnh chỉ nghiêng khi người dùng di chuột (chuyển động do người dùng
+ *   chủ động thì được phép), mỗi lần di chuột vẽ đúng một khung hình.
  */
 export interface RepairSceneOptions {
   reducedMotion: boolean
+  /** hero: panel lớn trang công khai (cụm lệch phải chừa chỗ tiêu đề) · banner: khung thấp trong dashboard */
+  layout?: 'hero' | 'banner'
 }
 
 export interface RepairSceneHandle {
@@ -131,7 +134,7 @@ interface Floater {
   spin: THREE.Vector3
 }
 
-export function createRepairScene(container: HTMLElement, { reducedMotion }: RepairSceneOptions): RepairSceneHandle | null {
+export function createRepairScene(container: HTMLElement, { reducedMotion, layout = 'hero' }: RepairSceneOptions): RepairSceneHandle | null {
   let renderer: THREE.WebGLRenderer
   try {
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' })
@@ -145,6 +148,11 @@ export function createRepairScene(container: HTMLElement, { reducedMotion }: Rep
   renderer.domElement.style.display = 'block'
   container.appendChild(renderer.domElement)
 
+  let disposed = false
+  /** Vẽ một khung – bỏ qua nếu cảnh đã bị dispose (callback rAF / fonts.ready đến muộn). */
+  const renderOnce = () => {
+    if (!disposed) renderer.render(scene, camera)
+  }
   const scene = new THREE.Scene()
   const pmrem = new THREE.PMREMGenerator(renderer)
   const envTexture = pmrem.fromScene(new RoomEnvironment(), 0.04).texture
@@ -167,8 +175,12 @@ export function createRepairScene(container: HTMLElement, { reducedMotion }: Rep
 
   const root = new THREE.Group()
   // Cụm 3D lệch phải, chừa chỗ cho tiêu đề bên trái
-  root.scale.setScalar(0.8)
-  root.position.set(1.05, 0.05, 0)
+  if (layout === 'hero') {
+    root.scale.setScalar(0.8)
+    root.position.set(1.05, 0.05, 0)
+  } else {
+    root.scale.setScalar(0.62)
+  }
   scene.add(root)
 
   // --- Điện thoại
@@ -192,7 +204,7 @@ export function createRepairScene(container: HTMLElement, { reducedMotion }: Rep
   document.fonts?.ready.then(() => {
     drawScreen(screenCanvas)
     screenTex.needsUpdate = true
-    if (reducedMotion) renderer.render(scene, camera)
+    if (reducedMotion) renderOnce()
   })
 
   // --- Linh kiện bay quanh
@@ -274,7 +286,7 @@ export function createRepairScene(container: HTMLElement, { reducedMotion }: Rep
     renderer.setSize(w, h, false)
     camera.aspect = w / h
     // Khung hẹp/dọc → lùi camera để cả cụm vẫn nằm trọn
-    camera.position.z = w / h < 0.9 ? 13 : 10.5
+    camera.position.z = layout === 'banner' ? 7.2 : w / h < 0.9 ? 13 : 10.5
     camera.updateProjectionMatrix()
     renderer.domElement.style.width = `${w}px`
     renderer.domElement.style.height = `${h}px`
@@ -289,7 +301,19 @@ export function createRepairScene(container: HTMLElement, { reducedMotion }: Rep
   const onPointer = (e: PointerEvent) => {
     const rect = container.getBoundingClientRect()
     pointer.set(((e.clientX - rect.left) / rect.width) * 2 - 1, ((e.clientY - rect.top) / rect.height) * 2 - 1)
+    pointer.clampScalar(-1.5, 1.5)
+    if (reducedMotion && !framePending) {
+      // Không có vòng lặp → vẽ một khung theo vị trí chuột (gộp nhiều sự kiện vào 1 frame)
+      framePending = true
+      requestAnimationFrame(() => {
+        framePending = false
+        root.rotation.y = pointer.x * 0.3
+        root.rotation.x = pointer.y * 0.12
+        renderOnce()
+      })
+    }
   }
+  let framePending = false
   window.addEventListener('pointermove', onPointer, { passive: true })
 
   const timer = new THREE.Timer()
@@ -320,11 +344,15 @@ export function createRepairScene(container: HTMLElement, { reducedMotion }: Rep
   })
   io.observe(container)
   document.addEventListener('visibilitychange', sync)
-  if (reducedMotion) renderer.render(scene, camera)
-  else sync()
+  if (reducedMotion) {
+    renderer.render(scene, camera)
+    // Vẽ thêm ở frame kế tiếp: lần vẽ đầu có thể xảy ra trước khi trình duyệt dựng xong lớp canvas
+    requestAnimationFrame(renderOnce)
+  } else sync()
 
   return {
     dispose() {
+      disposed = true
       renderer.setAnimationLoop(null)
       io.disconnect()
       ro.disconnect()
