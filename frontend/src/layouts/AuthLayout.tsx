@@ -1,11 +1,9 @@
 import { BellOutlined, FileProtectOutlined, SafetyCertificateOutlined } from '@ant-design/icons'
 import { Grid } from 'antd'
-import { lazy, Suspense, type ReactNode } from 'react'
+import { Suspense, type ReactNode } from 'react'
 import { Link, Outlet } from 'react-router-dom'
+import { RepairScene3D } from '@/components/three/lazyRepairScene'
 import { Scene3DBoundary } from '@/components/three/Scene3DBoundary'
-
-/** three.js chỉ tải khi màn hình ≥ 640px (panel 3D ở ≥ 1024px, dải 3D ở 640–1023px) – chunk riêng. */
-const RepairScene3D = lazy(() => import('@/components/three/RepairScene3D'))
 
 const CURRENT_YEAR = new Date().getFullYear()
 

@@ -13,12 +13,13 @@ import {
 } from '@ant-design/icons'
 import { Card, DatePicker, List, Table } from 'antd'
 import dayjs, { type Dayjs } from 'dayjs'
-import { lazy, Suspense, useState, type ReactNode } from 'react'
+import { Suspense, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAppSelector } from '@/app/hooks'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { WorkbenchIllustration } from '@/components/illustrations'
+import { RepairScene3D } from '@/components/three/lazyRepairScene'
 import { Scene3DBoundary } from '@/components/three/Scene3DBoundary'
 import { StatCard } from '@/components/StatCard'
 import { StatusTag } from '@/components/StatusTag'
@@ -49,8 +50,6 @@ const TODAY_LABEL = (() => {
   const s = dayjs().format('dddd, DD/MM/YYYY')
   return s.charAt(0).toUpperCase() + s.slice(1)
 })()
-
-const RepairScene3D = lazy(() => import('@/components/three/RepairScene3D'))
 
 /** Banner chào mừng: nền navy + cảnh 3D (≥ 640px; minh họa SVG khi đang tải hoặc lỗi WebGL). Giữ một <h1> cho trang. */
 function WelcomeBanner({ name, role }: { name: string; role: string }) {

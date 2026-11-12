@@ -219,6 +219,8 @@
 - [x] Sửa giao diện: bộ lọc phiếu trên một hàng (lưới 12 cột), thẻ chỉ số không xuống dòng, nhãn trạng thái cỡ vừa + nhãn "Sửa bảo hành" ở đầu trang chi tiết, câu chào trang đăng nhập rõ nghĩa, cụm 3D không đè dải thẻ
 - [x] Kiểm tra: `tsc`, `oxlint`, `vitest` 51 test, `vite build`; trình duyệt 1440px và 390px (không tràn ngang), hover kiểm bằng con trỏ thật
 
+- [x] Dựng lại mô hình 3D theo hướng chân thực (điện thoại khung titan, kính phản chiếu, cụm 3 camera, linh kiện tháo rời có nhãn/chip/ốc vít, bóng đổ) và sửa lỗi 3D biến mất khi chunk tải lỗi (tự tải lại trang một lần)
+
 **Sự cố môi trường trong lúc làm:** máy thiếu RAM (còn ~1,2/15,7 GB) khiến Docker tự khởi động lại Postgres/Redis và hỏng chuyển tiếp cổng 5433/6379 (kết nối bị cắt EOF) → backend báo DB/Redis DOWN; khắc phục bằng `docker compose restart postgres` và `restart redis` (dữ liệu giữ nguyên).
 
 ## Lộ trình theo mốc
