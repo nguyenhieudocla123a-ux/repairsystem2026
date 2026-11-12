@@ -242,6 +242,7 @@
 - [x] Anh thợ: ảnh Adobe Stock #1677010084 (giấy phép Standard, miễn phí) qua Adobe connector → tách nền (Photoshop API) → đổi nhãn áo thành REPAIRFLOW → WebP 55 KB
 - [x] Cảnh: anh thợ trái + tia quét hologram, điện thoại cắt lớp phải + linh kiện văng ra + tia lửa + 2 vệt năng lượng; nền bo mạch có xung sáng; thẻ kính mờ sáng lần lượt; nút Đăng nhập gradient phát sáng; tất cả dừng theo nút tạm dừng
 - [x] Kiểm tra: tsc, oxlint, vitest 51, build; trình duyệt 1440px (tia quét, tia lửa, xung mạch, thẻ sáng, nút gradient đều hiển thị)
+- [x] Thay tia laser máy tính bảng → điện thoại bằng bảng hologram chẩn đoán nổi trên máy tính bảng + vệt quét dọc màn hình điện thoại (đồng bộ %), theo phản hồi người dùng
 - Ghi chú: Adobe connector không có tạo ảnh AI (text-to-image) nên dùng ảnh Stock thay cho ảnh tự tạo
 
 ## Lộ trình theo mốc

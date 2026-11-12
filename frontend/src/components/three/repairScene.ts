@@ -5,8 +5,9 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 /**
  * Cảnh "kỹ thuật viên sửa điện thoại" phong cách neon công nghệ:
  * - Bên trái: anh thợ (ảnh 3D render từ Adobe Stock #1677010084, đã tách nền bằng Photoshop API, nhãn áo đổi
- *   thành REPAIRFLOW) – thở, đung đưa nhẹ, quầng sáng xanh phía sau; máy tính bảng trên tay chiếu tia quét
- *   hologram + hạt dữ liệu sang điện thoại.
+ *   thành REPAIRFLOW) – thở, đung đưa nhẹ, quầng sáng xanh phía sau; trên máy tính bảng nổi một bảng hologram
+ *   chẩn đoán (4 hạng mục chạy dần, % tiến độ, sóng tín hiệu) với chùm sáng hắt lên và hạt sáng bay lên.
+ * - Vệt quét chạy dọc màn hình điện thoại, đồng bộ với % chẩn đoán.
  * - Bên phải: điện thoại 3D (khung titan, kính phản chiếu, cụm camera…) với màn hình cắt lớp – nửa giao diện
  *   theo dõi phiếu, nửa lộ bo mạch/pin; cụm camera và bo mạch văng ra, tia lửa bắn ở góc máy,
  *   hai vệt sáng năng lượng xoáy quanh máy.
@@ -275,6 +276,110 @@ function drawInternals(ctx: CanvasRenderingContext2D, W: number, H: number) {
   ctx.lineTo(cutBottom, H)
   ctx.stroke()
   ctx.restore()
+}
+
+/** Bảng chẩn đoán hologram (vẽ lại khi tiến độ đổi): khung góc, tiêu đề, 4 hạng mục kiểm tra, % và sóng tín hiệu. */
+const HOLO_ITEMS = ['Màn hình', 'Pin', 'Camera', 'Bo mạch'] as const
+function drawHologram(canvas: HTMLCanvasElement, progress: number, t: number) {
+  const W = 512
+  const H = 340
+  canvas.width = W
+  canvas.height = H
+  const ctx = canvas.getContext('2d')!
+  ctx.clearRect(0, 0, W, H)
+  // Nền kính xanh mờ + viền
+  ctx.fillStyle = 'rgba(8,47,73,0.35)'
+  roundRect(ctx, 6, 6, W - 12, H - 12, 18)
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(103,232,249,0.55)'
+  ctx.lineWidth = 2
+  roundRect(ctx, 6, 6, W - 12, H - 12, 18)
+  ctx.stroke()
+  // Góc khung sáng
+  ctx.strokeStyle = '#A5F3FC'
+  ctx.lineWidth = 4
+  for (const [x, y, dx, dy] of [[6, 6, 1, 1], [W - 6, 6, -1, 1], [6, H - 6, 1, -1], [W - 6, H - 6, -1, -1]]) {
+    ctx.beginPath()
+    ctx.moveTo(x, y + dy * 34)
+    ctx.lineTo(x, y)
+    ctx.lineTo(x + dx * 34, y)
+    ctx.stroke()
+  }
+  ctx.fillStyle = '#A5F3FC'
+  ctx.font = FONT(700, 22)
+  ctx.fillText('CHẨN ĐOÁN THIẾT BỊ', 30, 46)
+  ctx.fillStyle = 'rgba(165,243,252,0.7)'
+  ctx.font = FONT(500, 17)
+  ctx.fillText('RO-2026-000123 · iPhone', 30, 72)
+  // % tổng
+  const pct = Math.round(progress * 100)
+  ctx.textAlign = 'right'
+  ctx.fillStyle = '#E0F2FE'
+  ctx.font = FONT(700, 48)
+  ctx.fillText(`${pct}%`, W - 30, 70)
+  ctx.textAlign = 'left'
+  // 4 hạng mục: thanh chạy lần lượt, xong thì ✓
+  HOLO_ITEMS.forEach((label, i) => {
+    const y = 108 + i * 46
+    const local = Math.min(Math.max(progress * HOLO_ITEMS.length - i, 0), 1)
+    ctx.fillStyle = 'rgba(224,242,254,0.9)'
+    ctx.font = FONT(500, 19)
+    ctx.fillText(label, 30, y + 16)
+    ctx.fillStyle = 'rgba(103,232,249,0.18)'
+    roundRect(ctx, 150, y + 2, 270, 14, 7)
+    ctx.fill()
+    if (local > 0) {
+      const grd = ctx.createLinearGradient(150, 0, 420, 0)
+      grd.addColorStop(0, '#0EA5E9')
+      grd.addColorStop(1, '#67E8F9')
+      ctx.fillStyle = grd
+      roundRect(ctx, 150, y + 2, Math.max(14, 270 * local), 14, 7)
+      ctx.fill()
+    }
+    ctx.fillStyle = local >= 1 ? '#4ADE80' : 'rgba(165,243,252,0.6)'
+    ctx.font = FONT(700, 19)
+    ctx.fillText(local >= 1 ? '✓ OK' : local > 0 ? '…' : '', 436, y + 16)
+  })
+  // Sóng tín hiệu
+  ctx.strokeStyle = 'rgba(103,232,249,0.8)'
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  for (let x = 30; x <= W - 30; x += 4) {
+    const y = 306 + Math.sin(x * 0.06 + t * 6) * 8 * Math.sin(x * 0.013 + t)
+    if (x === 30) ctx.moveTo(x, y)
+    else ctx.lineTo(x, y)
+  }
+  ctx.stroke()
+}
+
+/** Dải dọc: trong suốt → xanh → vạch sáng ở mép trên (vệt quét màn hình điện thoại). */
+function makeScanTexture() {
+  const c = document.createElement('canvas')
+  c.width = 4
+  c.height = 128
+  const ctx = c.getContext('2d')!
+  const grd = ctx.createLinearGradient(0, 128, 0, 0)
+  grd.addColorStop(0, 'rgba(34,211,238,0)')
+  grd.addColorStop(0.8, 'rgba(34,211,238,0.35)')
+  grd.addColorStop(0.95, 'rgba(165,243,252,1)')
+  grd.addColorStop(1, 'rgba(165,243,252,0)')
+  ctx.fillStyle = grd
+  ctx.fillRect(0, 0, 4, 128)
+  return new THREE.CanvasTexture(c)
+}
+
+/** Chùm sáng hắt lên từ máy tính bảng: sáng ở đáy, mờ dần lên trên. */
+function makeConeTexture() {
+  const c = document.createElement('canvas')
+  c.width = 4
+  c.height = 128
+  const ctx = c.getContext('2d')!
+  const grd = ctx.createLinearGradient(0, 128, 0, 0)
+  grd.addColorStop(0, 'rgba(255,255,255,0.9)')
+  grd.addColorStop(1, 'rgba(255,255,255,0)')
+  ctx.fillStyle = grd
+  ctx.fillRect(0, 0, 4, 128)
+  return new THREE.CanvasTexture(c)
 }
 
 /** Quầng sáng tròn (trắng → trong suốt) – dùng cho sprite cộng màu: tia, đầu tia, tia lửa, đèn nền. */
@@ -642,36 +747,60 @@ export function createRepairScene(container: HTMLElement, { animate: animateInit
   tabletGlow.position.copy(tabletLocal)
   root.add(tabletGlow)
 
-  // ------------------------------------------------------------------ Tia quét hologram: máy tính bảng → điện thoại
-  const beamGeo = g(new THREE.CylinderGeometry(1, 1, 1, 12, 1, true))
-  const beamCoreMat = new THREE.MeshBasicMaterial({ color: '#A5F3FC', transparent: true, opacity: 0.85, depthWrite: false, blending: THREE.AdditiveBlending })
-  const beamHaloMat = new THREE.MeshBasicMaterial({ color: '#0EA5E9', transparent: true, opacity: 0.18, depthWrite: false, blending: THREE.AdditiveBlending })
-  const beamCore = new THREE.Mesh(beamGeo, beamCoreMat)
-  const beamHalo = new THREE.Mesh(beamGeo, beamHaloMat)
-  root.add(beamCore, beamHalo)
-  const hitGlowMat = additive('#67E8F9', 0.9)
-  const hitGlow = new THREE.Sprite(hitGlowMat)
-  hitGlow.scale.set(0.7, 0.7, 1)
-  root.add(hitGlow)
-  const dataMat = additive('#E0F2FE', 0.95)
-  const dataDots: THREE.Sprite[] = []
-  for (let i = 0; i < 9; i++) {
-    // Mỗi hạt một material riêng để độ mờ khác nhau (clone rẻ, dùng chung texture)
-    const d = new THREE.Sprite(dataMat.clone())
-    d.scale.set(0.14, 0.14, 1)
-    root.add(d)
-    dataDots.push(d)
+  // ------------------------------------------------------------------ Bảng hologram chẩn đoán nổi trên máy tính bảng
+  const holoCanvas = document.createElement('canvas')
+  drawHologram(holoCanvas, 0, 0)
+  const holoTex = new THREE.CanvasTexture(holoCanvas)
+  holoTex.colorSpace = THREE.SRGBColorSpace
+  const holoMat = new THREE.MeshBasicMaterial({ map: holoTex, transparent: true, depthWrite: false, toneMapped: false, side: THREE.DoubleSide })
+  const HOLO_W = 2.3
+  const HOLO_H = (HOLO_W * 340) / 512
+  const holo = new THREE.Mesh(g(new THREE.PlaneGeometry(HOLO_W, HOLO_H)), holoMat)
+  const holoBase = new THREE.Vector3(tabletLocal.x + 1.45, tabletLocal.y + 1.8, 0.7)
+  holo.position.copy(holoBase)
+  holo.rotation.set(-0.06, 0.28, 0)
+  root.add(holo)
+  // Chùm sáng hình thang: hẹp ở máy tính bảng, rộng ở mép dưới bảng hologram
+  const coneTex = makeConeTexture()
+  const coneMat = new THREE.MeshBasicMaterial({ map: coneTex, color: '#22D3EE', transparent: true, opacity: 0.35, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending })
+  const coneGeo = g(new THREE.BufferGeometry())
+  const conePos = new Float32Array(12)
+  coneGeo.setAttribute('position', new THREE.BufferAttribute(conePos, 3))
+  coneGeo.setAttribute('uv', new THREE.BufferAttribute(new Float32Array([0, 0, 1, 0, 1, 1, 0, 1]), 2))
+  coneGeo.setIndex([0, 1, 2, 0, 2, 3])
+  const cone = new THREE.Mesh(coneGeo, coneMat)
+  cone.frustumCulled = false
+  root.add(cone)
+  const holoCorner = new THREE.Vector3()
+  const updateCone = () => {
+    holo.updateMatrix()
+    const set = (i: number, v: THREE.Vector3) => conePos.set([v.x, v.y, v.z], i * 3)
+    set(0, holoCorner.set(tabletLocal.x - 0.12, tabletLocal.y + 0.05, tabletLocal.z))
+    set(1, holoCorner.set(tabletLocal.x + 0.12, tabletLocal.y + 0.05, tabletLocal.z))
+    set(2, holoCorner.set(HOLO_W / 2, -HOLO_H / 2, 0).applyMatrix4(holo.matrix))
+    set(3, holoCorner.set(-HOLO_W / 2, -HOLO_H / 2, 0).applyMatrix4(holo.matrix))
+    coneGeo.attributes.position.needsUpdate = true
   }
-  const beamTarget = new THREE.Vector3()
-  const tmpV = new THREE.Vector3()
-  const UP = new THREE.Vector3(0, 1, 0)
-  const placeBeam = (mesh: THREE.Mesh, from: THREE.Vector3, to: THREE.Vector3, radius: number) => {
-    tmpV.subVectors(to, from)
-    const len = tmpV.length()
-    mesh.position.copy(from).addScaledVector(tmpV, 0.5)
-    mesh.quaternion.setFromUnitVectors(UP, tmpV.normalize())
-    mesh.scale.set(radius, len, radius)
+  updateCone()
+  // Hạt sáng bay lên từ máy tính bảng vào bảng hologram
+  const riseMat = additive('#A5F3FC', 0.9)
+  const rising: THREE.Sprite[] = []
+  for (let i = 0; i < 10; i++) {
+    const sp = new THREE.Sprite(riseMat.clone())
+    sp.scale.set(0.09, 0.09, 1)
+    root.add(sp)
+    rising.push(sp)
   }
+
+  // ------------------------------------------------------------------ Vệt quét chạy dọc màn hình điện thoại
+  const scanTex = makeScanTexture()
+  const scanMat = new THREE.MeshBasicMaterial({ map: scanTex, transparent: true, depthWrite: false, toneMapped: false, blending: THREE.AdditiveBlending })
+  const SCAN_H = 0.9
+  const scan = new THREE.Mesh(g(new THREE.PlaneGeometry(PW - 0.1, SCAN_H)), scanMat)
+  scan.position.z = PD / 2 + 0.012
+  phone.add(scan)
+  let holoPct = -1
+  let holoDrawnAt = 0
 
   // ------------------------------------------------------------------ Tia lửa ở góc máy (nơi linh kiện văng ra)
   const SPARKS = 90
@@ -774,26 +903,33 @@ export function createRepairScene(container: HTMLElement, { animate: animateInit
     backGlowMat.opacity = 0.28 + Math.sin(t * 1.3) * 0.06
     tabletGlowMat.opacity = 0.75 + Math.sin(t * 6) * 0.12
 
-    // Tia quét: bật 75% chu kỳ 3,2 giây, rung nhẹ như tia thật
-    const cycle = (t % 3.2) / 3.2
-    const beam = cycle < 0.75 ? Math.min(cycle / 0.06, (0.75 - cycle) / 0.06, 1) : 0
-    const flicker = 0.85 + Math.sin(t * 43) * 0.08 + Math.sin(t * 17) * 0.07
-    phone.updateMatrixWorld()
-    beamTarget.set(-0.45 + Math.sin(t * 1.7) * 0.25, 0.35 + Math.sin(t * 1.1) * 0.6, PD / 2 + 0.02)
-    phone.localToWorld(beamTarget)
-    root.worldToLocal(beamTarget)
-    placeBeam(beamCore, tabletLocal, beamTarget, 0.018)
-    placeBeam(beamHalo, tabletLocal, beamTarget, 0.075)
-    beamCoreMat.opacity = 0.85 * beam * flicker
-    beamHaloMat.opacity = 0.2 * beam * flicker
-    hitGlow.position.copy(beamTarget)
-    hitGlowMat.opacity = 0.9 * beam * flicker
-    hitGlow.scale.setScalar(0.5 + beam * 0.3 * flicker)
-    dataDots.forEach((d, i) => {
-      const k = (t * 0.7 + i / dataDots.length) % 1
-      d.position.lerpVectors(tabletLocal, beamTarget, k)
-      ;(d.material as THREE.SpriteMaterial).opacity = beam * Math.sin(k * Math.PI) * 0.95
+    // Chu kỳ chẩn đoán 5 giây: quét 0 → 100% trong 4 giây, giữ "hoàn tất" 1 giây
+    const cyc = t % 5
+    const progress = Math.min(cyc / 4, 1)
+    const pct = Math.round(progress * 100)
+    if (pct !== holoPct || t - holoDrawnAt > 0.1) {
+      holoPct = pct
+      holoDrawnAt = t
+      drawHologram(holoCanvas, progress, t)
+      holoTex.needsUpdate = true
+    }
+    holo.position.set(holoBase.x, holoBase.y + Math.sin(t * 1.2) * 0.06, holoBase.z)
+    holo.rotation.y = 0.28 + Math.sin(t * 0.5) * 0.04
+    holoMat.opacity = 0.88 + Math.sin(t * 31) * 0.04 + (Math.random() < 0.02 ? -0.3 : 0) // nhấp nháy kiểu hologram
+    updateCone()
+    coneMat.opacity = 0.28 + Math.sin(t * 3) * 0.06
+    rising.forEach((sp, i) => {
+      const k = (t * 0.45 + i / rising.length) % 1
+      sp.position.set(
+        tabletLocal.x + (holoBase.x - tabletLocal.x) * k + Math.sin(i * 2.1 + t * 2) * 0.12,
+        tabletLocal.y + (holoBase.y - HOLO_H / 2 - tabletLocal.y) * k,
+        tabletLocal.z + (holoBase.z - tabletLocal.z) * k,
+      )
+      ;(sp.material as THREE.SpriteMaterial).opacity = Math.sin(k * Math.PI) * 0.9
     })
+    // Vệt quét trên điện thoại đồng bộ với % chẩn đoán; tắt dần khi hoàn tất
+    scan.position.y = -PH / 2 + SCAN_H / 2 + progress * (PH - SCAN_H)
+    scanMat.opacity = cyc < 4 ? 1 : Math.max(0, 1 - (cyc - 4) * 3)
 
     // Tia lửa ở góc trên-phải của máy
     emitter.set(PW / 2 - 0.15, PH / 2 - 0.5, PD / 2)
@@ -865,8 +1001,8 @@ export function createRepairScene(container: HTMLElement, { animate: animateInit
       document.removeEventListener('visibilitychange', sync)
       timer.dispose()
       for (const geo of geos) geo.dispose()
-      for (const m of [titanium, backGlass, plateauGlass, lensRing, lensGlass, blackPlastic, glassCoat, foil, pcb, shieldCan, chipMat, gold, screwMat, flexMat, flashMat, screenMat, shadowMat, dustMat, techMat, backGlowMat, tabletGlowMat, beamCoreMat, beamHaloMat, hitGlowMat, dataMat, sparkMat, emitterGlowMat, ...streakMats, ...dataDots.map((d) => d.material)]) m.dispose()
-      for (const t of [screenTex, shadowTex, techTex, glowTex, streakTex, ...streakMats.map((m) => m.alphaMap!)]) t.dispose()
+      for (const m of [titanium, backGlass, plateauGlass, lensRing, lensGlass, blackPlastic, glassCoat, foil, pcb, shieldCan, chipMat, gold, screwMat, flexMat, flashMat, screenMat, shadowMat, dustMat, techMat, backGlowMat, tabletGlowMat, holoMat, coneMat, riseMat, scanMat, sparkMat, emitterGlowMat, ...streakMats, ...rising.map((r) => r.material)]) m.dispose()
+      for (const t of [screenTex, shadowTex, techTex, glowTex, streakTex, holoTex, coneTex, scanTex, ...streakMats.map((m) => m.alphaMap!)]) t.dispose()
       envTexture.dispose()
       pmrem.dispose()
       renderer.dispose()
