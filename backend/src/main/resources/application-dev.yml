@@ -1,0 +1,10 @@
+# Profile dev: log chi tiết hơn, bật Swagger.
+logging:
+  level:
+    com.repairflow: DEBUG
+    org.flywaydb: INFO
+
+management:
+  endpoint:
+    health:
+      show-details: always

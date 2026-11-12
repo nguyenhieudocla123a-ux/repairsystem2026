@@ -1,0 +1,13 @@
+# Profile prod: không có giá trị mặc định cho thông tin kết nối – thiếu biến môi trường thì app không khởi động.
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:false}
+
+logging:
+  level:
+    root: INFO

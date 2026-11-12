@@ -1,1 +1,67 @@
-# repairsystem2026
+# RepairFlow – Device Repair & Warranty Management System
+
+Hệ thống quản lý sửa chữa & bảo hành thiết bị điện tử cho trung tâm sửa chữa: tiếp nhận → kiểm tra → báo giá → sửa chữa → bàn giao → bảo hành, với 4 vai trò ADMIN / STAFF / TECHNICIAN / CUSTOMER.
+
+> 🚧 Đang phát triển – Mốc 2/8 hoàn thành (backend nền tảng + PostgreSQL + Flyway + Redis). Xem tiến độ tại [PROJECT_STATUS.md](PROJECT_STATUS.md).
+
+## Chạy cục bộ
+
+Yêu cầu: JDK 17, Docker Desktop (đang chạy).
+
+```bash
+# 1. Tạo file cấu hình (sau đó sửa các giá trị CHANGE_ME)
+cp .env.example .env
+
+# 2. Khởi động PostgreSQL (cổng 5433) + Redis (cổng 6379)
+docker compose up -d
+
+# 3. Chạy backend – Flyway tự migrate khi khởi động
+cd backend
+./mvnw spring-boot:run
+```
+
+- Health: http://localhost:8080/actuator/health
+- Swagger UI: http://localhost:8080/swagger-ui.html
+
+Chạy test (integration test cần Docker):
+
+```bash
+cd backend
+./mvnw verify
+```
+
+> Nếu JDK mặc định không phải 17, đặt `JAVA_HOME` trỏ tới JDK 17 trước khi chạy `mvnw`.
+
+## Công nghệ
+
+| Phần | Công nghệ |
+|---|---|
+| Backend | Java 17, Spring Boot 3, Spring Web, Data JPA, Security (JWT + Refresh Token), Validation, WebSocket (STOMP), Actuator, springdoc-openapi, Lombok |
+| Dữ liệu | PostgreSQL 16, Flyway, Redis 7 |
+| Frontend | React, TypeScript, Vite, React Router, Redux Toolkit, Axios, Tailwind CSS, Ant Design, React Hook Form, Zod, Recharts |
+| Test | JUnit 5, Mockito, Spring Boot Test, Testcontainers · Vitest, React Testing Library |
+| Triển khai | Docker, Docker Compose, Nginx |
+
+## Tài liệu
+
+| File | Nội dung |
+|---|---|
+| [docs/requirements.md](docs/requirements.md) | Phân tích nghiệp vụ, workflow, ma trận quyền |
+| [docs/database-erd.md](docs/database-erd.md) | Thiết kế CSDL, ERD, ràng buộc, concurrency |
+| [docs/ui-ux-design.md](docs/ui-ux-design.md) | Design system, sitemap, wireframe |
+| [docs/architecture.md](docs/architecture.md) | Kiến trúc, bảo mật, Redis, WebSocket, testing |
+| [docs/api-specification.md](docs/api-specification.md) | Hợp đồng API Frontend ↔ Backend |
+| [TECHNICAL_DECISIONS.md](TECHNICAL_DECISIONS.md) | Các quyết định kỹ thuật và lý do |
+| [PROJECT_STATUS.md](PROJECT_STATUS.md) | Đã làm / chưa làm |
+
+## Cấu trúc repo
+
+```
+RepairFlow/
+├── backend/      Spring Boot API
+├── frontend/     React SPA
+├── database/     (migration nằm trong backend/src/main/resources/db/migration)
+├── docs/         Tài liệu thiết kế
+├── docker-compose.yml   (sẽ thêm ở Mốc 2)
+└── README.md
+```

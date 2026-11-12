@@ -1,0 +1,33 @@
+# Technical Decisions (ADR rút gọn)
+
+Mỗi quyết định: **Bối cảnh → Quyết định → Lý do → Đánh đổi**. Thêm mục mới khi kiến trúc thay đổi.
+
+| # | Quyết định | Lý do chính | Đánh đổi |
+|---|---|---|---|
+| TD-01 | **Modular monolith** chia package theo feature (`customer/`, `repair/`, …), mỗi module có controller/service/repository/entity/dto/mapper | Dễ đọc, dễ giải thích; module tự chứa; tránh độ phức tạp microservices với 1 DB | Phải tự giữ kỷ luật không gọi repository của module khác tùy tiện (gọi qua service) |
+| TD-02 | Access token JWT 15 phút trong **RAM (Redux)**; refresh token ngẫu nhiên 256-bit trong cookie **HttpOnly, SameSite=Strict, Path=/api/v1/auth**, DB chỉ lưu SHA-256 | Chống XSS đọc token; lộ DB không dùng được token | F5 phải gọi `/auth/refresh` để khôi phục phiên (thêm 1 request khi khởi động) |
+| TD-03 | **Rotation + reuse detection** theo `family_id` | Token bị đánh cắp và dùng lại sẽ bị phát hiện, thu hồi cả chuỗi | Thêm bảng/logic; 2 tab refresh cùng lúc hiếm khi có thể gây đăng xuất (chấp nhận) |
+| TD-04 | Logout → blacklist `jti` access token trong Redis tới khi hết hạn | Access token stateless không thu hồi được nếu không có blacklist | Mỗi request thêm 1 lần đọc Redis (rất nhanh). Redis lỗi → fail-open có log |
+| TD-05 | **Vite proxy** (dev) & **Nginx reverse proxy** (prod) để FE và API cùng origin | Cookie SameSite=Strict hoạt động, không cần CORS credentials phức tạp | CORS vẫn cấu hình qua env cho trường hợp gọi trực tiếp |
+| TD-06 | Máy trạng thái phiếu nằm trong **`RepairStatusPolicy`** (Java, bảng chuyển đổi + role), không dùng trigger DB hay thư viện state machine | Dễ unit test, dễ đọc; Spring Statemachine là quá nặng cho 10 trạng thái | Phải đảm bảo mọi thay đổi trạng thái đi qua service (không update trực tiếp) |
+| TD-07 | Backend trả `allowedTransitions` trong chi tiết phiếu | Frontend không lặp lại luật nghiệp vụ; một nguồn sự thật | Response lớn hơn một chút |
+| TD-08 | Xuất kho dùng **pessimistic lock** (`@Lock(PESSIMISTIC_WRITE)` → `SELECT … FOR UPDATE`) + `CHECK (quantity_on_hand >= 0)`; phiếu/báo giá/linh kiện (sửa thông tin) dùng **optimistic lock** `@Version` | Tồn kho xung đột thường xuyên, cần đúng tuyệt đối; sửa thông tin hiếm khi đụng nhau | Lock giữ trong transaction ngắn – phải giữ transaction xuất kho nhỏ gọn |
+| TD-09 | Tiền `NUMERIC(15,2)` ↔ `BigDecimal`, làm tròn `HALF_UP`, tính tổng **chỉ ở Backend** | Tránh sai số floating point | — |
+| TD-10 | Mapper **viết tay** (static method) thay vì MapStruct | Số DTO vừa phải; code tường minh, dễ debug, không cần annotation processor thêm | Viết nhiều dòng hơn. Có thể chuyển MapStruct nếu DTO tăng nhiều |
+| TD-11 | DTO dùng Java **`record`** | Bất biến, ngắn gọn, hợp với validation annotation | — |
+| TD-12 | Enum lưu `VARCHAR + CHECK` thay vì PostgreSQL `ENUM` type | Migrate thêm giá trị dễ; Hibernate `@Enumerated(STRING)` map trực tiếp | Không có ràng buộc kiểu ở mức type |
+| TD-13 | Migration Flyway đặt tại `backend/src/main/resources/db/migration` (thay vì `database/migrations/` như cấu trúc gốc) | Đóng gói vào jar → chạy được trong Docker image và Testcontainers; một nguồn duy nhất. `database/README.md` trỏ tới đây | Lệch nhỏ so với cấu trúc thư mục đề xuất ban đầu |
+| TD-14 | `ddl-auto=validate` ở mọi profile | Schema do Flyway quản lý; Hibernate chỉ kiểm tra khớp mapping | — |
+| TD-15 | Thông báo gửi qua `@TransactionalEventListener(AFTER_COMMIT)` | Không báo cho người dùng thay đổi bị rollback; tách module notification khỏi nghiệp vụ | Nếu lưu notification lỗi sau commit, nghiệp vụ không rollback (chấp nhận, có log) |
+| TD-16 | WebSocket STOMP với **simple broker** in-memory, xác thực JWT ở frame CONNECT | Đủ cho 1 instance; đơn giản | Scale nhiều instance cần Redis pub/sub / broker relay |
+| TD-17 | Redis cache: chỉ dashboard (60s) và danh mục linh kiện; **không** cache tồn kho, user, dữ liệu cá nhân | Dữ liệu cần chính xác/nhạy cảm không cache | Dashboard có thể trễ tối đa 60s (đồng thời có evict chủ động) |
+| TD-18 | Ngoài phạm vi→404 thay vì 403 cho CUSTOMER/TECHNICIAN truy cập tài nguyên người khác | Không tiết lộ ID nào tồn tại (chống enumeration) | Debug khó hơn chút – log server ghi rõ |
+| TD-19 | Tài khoản mẫu tạo bởi `DemoDataSeeder` chỉ ở profile `dev`, mật khẩu đọc từ biến môi trường | Không hardcode mật khẩu trong code/migration | Phải cấu hình `.env` trước khi chạy |
+| TD-20 | Integration test dùng **Testcontainers** (PostgreSQL, Redis thật) thay vì H2 | H2 khác PostgreSQL (partial index, `FOR UPDATE`, `pg_trgm`) → test không đáng tin | Cần Docker khi chạy test |
+| TD-21 | Biên dịch `--release 17`; máy dev hiện có JDK 17 tại `~/.jdks/ms-17.0.20.1` (JDK mặc định là 25) | Đúng yêu cầu Java 17 | Cần trỏ `JAVA_HOME` về JDK 17 khi build cục bộ, hoặc build bằng Docker |
+| TD-22 | Ant Design + Tailwind: tắt Tailwind `preflight`, AntD lo component, Tailwind lo layout | Tránh 2 bộ reset CSS xung đột | Phải quy ước rõ khi nào dùng cái nào |
+| TD-23 | Redux Toolkit chỉ cho state toàn cục (auth, notifications); dữ liệu màn hình dùng hook + state cục bộ | Tránh Redux phình to, code boilerplate | Không có cache dữ liệu giữa các trang (chấp nhận, gọi lại API) |
+| TD-24 | Container PostgreSQL map ra cổng **5433** (cấu hình qua `POSTGRES_PORT`) | Máy dev đã có dịch vụ PostgreSQL Windows chiếm 5432 – tránh xung đột, không động vào DB có sẵn | Ghi nhớ dùng 5433 khi kết nối bằng công cụ DB |
+| TD-25 | Backend tự nạp `.env` ở gốc repo bằng `spring.config.import: optional:file:../.env[.properties]` | Một file cấu hình dùng chung cho Docker Compose và khi chạy backend từ IDE/Maven; không hardcode bí mật | Biến môi trường thật (CI/production) vẫn được ưu tiên hơn file |
+| TD-26 | Spring Boot **3.5.16** (bản 3.x mới nhất), springdoc 2.8.17, jjwt 0.12.6 | Đúng yêu cầu Spring Boot 3.x, nhận bản vá bảo mật mới nhất | — |
+| TD-27 | Test chia `*Test` (unit, Surefire, `mvn test`) và `*IT` (integration, Failsafe, `mvn verify`) | Chạy unit test nhanh khi không có Docker; integration test chạy đầy đủ trước khi commit | — |

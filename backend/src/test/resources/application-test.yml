@@ -1,0 +1,11 @@
+# Profile test: kết nối DB/Redis được Testcontainers (@ServiceConnection) cung cấp, không phụ thuộc file .env.
+spring:
+  datasource:
+    password: unused-overridden-by-testcontainers
+  data:
+    redis:
+      password:
+
+logging:
+  level:
+    com.repairflow: INFO
