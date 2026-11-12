@@ -1,9 +1,10 @@
 import { BellOutlined, FileProtectOutlined, SafetyCertificateOutlined } from '@ant-design/icons'
 import { Button, Grid } from 'antd'
-import { Suspense, type ReactNode } from 'react'
+import { Suspense, useRef, type ReactNode } from 'react'
 import { Link, Outlet } from 'react-router-dom'
 import { RepairScene3D } from '@/components/three/lazyRepairScene'
 import { Scene3DBoundary } from '@/components/three/Scene3DBoundary'
+import { usePointerVars } from '@/hooks/usePointerVars'
 
 const CURRENT_YEAR = new Date().getFullYear()
 
@@ -19,14 +20,20 @@ const brandBg = 'bg-[radial-gradient(120%_80%_at_70%_20%,#0C4A6E_0%,#0B1220_55%,
 /** Bố cục trang công khai: panel thương hiệu 3D (≥1024px) + vùng form. */
 export function AuthLayout() {
   const screens = Grid.useBreakpoint()
+  const asideRef = useRef<HTMLElement>(null)
+  const cardRef = useRef<HTMLDivElement>(null)
+  usePointerVars(asideRef, 400)
+  usePointerVars(cardRef, 220)
   return (
     <div className="grid min-h-screen bg-bg lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
-      <aside className={`relative hidden overflow-hidden text-white lg:flex lg:flex-col ${brandBg}`}>
+      <aside ref={asideRef} className={`rf-spotlight relative hidden overflow-hidden text-white lg:flex lg:flex-col ${brandBg}`}>
         {/* Lưới mờ tạo cảm giác "bàn kỹ thuật" */}
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 opacity-[0.07] [background-image:linear-gradient(#fff_1px,transparent_1px),linear-gradient(90deg,#fff_1px,transparent_1px)] [background-size:48px_48px] [mask-image:radial-gradient(70%_60%_at_60%_40%,#000,transparent)]"
         />
+        {/* Đèn rọi theo chuột: lưới kỹ thuật sáng lên quanh con trỏ (nằm sau cảnh 3D) */}
+        <div aria-hidden="true" className="rf-spotlight-grid pointer-events-none absolute inset-0" />
         {screens.lg && (
           <Scene3DBoundary>
             <Suspense fallback={null}>
@@ -39,6 +46,7 @@ export function AuthLayout() {
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgb(7_11_20/0.85)_0%,rgb(7_11_20/0.35)_45%,transparent_70%),linear-gradient(0deg,rgb(7_11_20/0.9)_0%,transparent_35%)]"
         />
+        <div aria-hidden="true" className="rf-spotlight-glow pointer-events-none absolute inset-0" />
 
         <div data-enter className="pointer-events-none relative z-10 flex h-full flex-col p-10 xl:p-14">
           <Link to="/login" className="pointer-events-auto flex w-fit items-center gap-3 text-white no-underline">
@@ -92,8 +100,11 @@ export function AuthLayout() {
           </Link>
         </div>
         <div className="flex flex-1 items-center justify-center bg-[radial-gradient(rgb(15_23_42/0.06)_1px,transparent_1px)] [background-size:20px_20px] px-5 py-10 sm:px-10">
-          <div className="w-full max-w-[440px] rounded-2xl border border-border bg-surface p-6 shadow-[0_1px_2px_rgb(15_23_42/0.04),0_12px_32px_-12px_rgb(15_23_42/0.14)] sm:p-9">
-            <Outlet />
+          <div ref={cardRef} className="rf-beam-wrap relative w-full max-w-[440px]">
+            <div aria-hidden="true" className="rf-beam-halo pointer-events-none absolute -inset-10" />
+            <div data-enter className="rf-beam w-full rounded-2xl border border-border bg-surface p-6 shadow-[0_1px_2px_rgb(15_23_42/0.04),0_12px_32px_-12px_rgb(15_23_42/0.14)] sm:p-9">
+              <Outlet />
+            </div>
           </div>
         </div>
         <footer className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 px-5 pb-6 text-xs text-text-muted">

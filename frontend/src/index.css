@@ -159,6 +159,88 @@
     }
   }
 
+/*
+ * Hiệu ứng trang đăng nhập (biến --mx/--my/--mo do usePointerVars ghi theo con trỏ).
+ * 1) Đèn rọi trên panel thương hiệu: quầng sáng + lưới kỹ thuật sáng lên quanh con trỏ.
+ * 2) Viền sáng quanh thẻ form: một vệt sáng chạy vòng (chỉ khi cho phép chuyển động) + quầng sáng ở đoạn viền gần con trỏ.
+ */
+@property --rf-beam-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 200deg;
+}
+
+.rf-spotlight {
+  --mx: 60%;
+  --my: 35%;
+  --mo: 0;
+}
+.rf-spotlight-glow {
+  background: radial-gradient(520px circle at var(--mx) var(--my), rgb(56 189 248 / 0.22), transparent 45%);
+  opacity: calc(0.35 + var(--mo) * 0.65);
+  transition: opacity 300ms var(--ease);
+}
+.rf-spotlight-grid {
+  background-image:
+    linear-gradient(rgb(125 211 252 / 0.5) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(125 211 252 / 0.5) 1px, transparent 1px);
+  background-size: 48px 48px;
+  -webkit-mask-image: radial-gradient(240px circle at var(--mx) var(--my), #000, transparent 70%);
+  mask-image: radial-gradient(240px circle at var(--mx) var(--my), #000, transparent 70%);
+  opacity: calc(var(--mo) * 0.75);
+  transition: opacity 300ms var(--ease);
+}
+
+/* Biến con trỏ đặt ở wrapper → thẻ (.rf-beam) và vầng sáng (.rf-beam-halo) cùng kế thừa */
+.rf-beam-wrap {
+  --mx: 50%;
+  --my: 0;
+  --mo: 0;
+}
+.rf-beam-halo {
+  background: radial-gradient(320px circle at calc(var(--mx) + 40px) calc(var(--my) + 40px), rgb(56 189 248 / 0.28), transparent 65%);
+  filter: blur(24px);
+  opacity: var(--mo);
+  transition: opacity 250ms var(--ease);
+}
+.rf-beam {
+  position: relative;
+  isolation: isolate;
+}
+/* Lớp viền dày 1.5px vẽ bằng mask (content-box loại phần giữa) */
+.rf-beam::before,
+.rf-beam::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 2px;
+  pointer-events: none;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+/* Vệt sáng chạy vòng quanh viền */
+.rf-beam::before {
+  background: conic-gradient(from var(--rf-beam-angle), transparent 0deg 250deg, rgb(56 189 248 / 0.0) 260deg, #38bdf8 320deg, #0369a1 345deg, transparent 360deg);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .rf-beam::before {
+    animation: rf-beam-spin 7s linear infinite;
+  }
+}
+@keyframes rf-beam-spin {
+  to {
+    --rf-beam-angle: 560deg;
+  }
+}
+/* Quầng sáng ở đoạn viền gần con trỏ */
+.rf-beam::after {
+  background: radial-gradient(260px circle at var(--mx) var(--my), rgb(56 189 248 / 0.9), transparent 60%);
+  opacity: var(--mo);
+  transition: opacity 200ms var(--ease);
+}
+
 @layer base {
   html,
   body,
