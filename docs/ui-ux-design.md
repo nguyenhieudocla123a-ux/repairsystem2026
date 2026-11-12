@@ -5,8 +5,8 @@
 ## 1. Design system
 
 ### 1.1 Công nghệ giao diện
-- **Ant Design 5** cho component phức tạp (Table, Form, Modal, Drawer, Steps, Timeline, DatePicker, Select có search, Badge, notification).
-- **Tailwind CSS** cho layout, spacing, responsive, card tự dựng. Tắt `preflight` của Tailwind để không xung đột reset CSS của AntD.
+- **Ant Design 6** (xem TD-28) cho component phức tạp (Table, Form, Modal, Drawer, Steps, Timeline, DatePicker, Select có search, Badge, notification).
+- **Tailwind CSS** cho layout, spacing, responsive, card tự dựng. Không import `preflight` của Tailwind để không xung đột reset CSS của AntD. Chi tiết token/component: `docs/design-system.md`.
 - **Recharts** cho biểu đồ. Icon: `@ant-design/icons`.
 - Theme AntD qua `ConfigProvider` (token) – một nguồn màu duy nhất, Tailwind đọc cùng bảng màu trong `tailwind.config`.
 

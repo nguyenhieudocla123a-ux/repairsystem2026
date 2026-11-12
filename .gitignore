@@ -23,3 +23,6 @@ frontend/.vite/
 
 # Docker volumes (nếu bind mount cục bộ)
 .data/
+
+# Cấu hình công cụ cục bộ (Claude preview)
+.claude/

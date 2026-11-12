@@ -1,0 +1,72 @@
+/*
+ * Thứ tự layer: AntD (layer "antd") đứng trước utilities của Tailwind → class Tailwind ghi đè được style AntD khi cần.
+ * KHÔNG import preflight của Tailwind (TD-22): AntD đã có reset riêng, hai bộ reset sẽ xung đột.
+ */
+@layer theme, base, antd, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+@import '@fontsource-variable/inter';
+
+/* Token cho Tailwind – giá trị lấy từ biến --rf-* do ThemeCssVariables sinh ra từ src/theme/tokens.ts */
+@theme {
+  --color-primary: var(--rf-primary);
+  --color-success: var(--rf-success);
+  --color-warning: var(--rf-warning);
+  --color-error: var(--rf-error);
+  --color-bg: var(--rf-bg);
+  --color-surface: var(--rf-surface);
+  --color-border: var(--rf-border);
+  --color-text: var(--rf-text);
+  --color-text-secondary: var(--rf-text-secondary);
+  --color-text-muted: var(--rf-text-muted);
+
+  --color-sidebar: var(--rf-sidebar-bg);
+  --color-sidebar-muted: #94a3b8;
+
+  --color-tone-primary-bg: #eef2ff;
+  --color-tone-primary-fg: #4f46e5;
+  --color-tone-success-bg: #f0fdf4;
+  --color-tone-success-fg: #15803d;
+  --color-tone-warning-bg: #fffbeb;
+  --color-tone-warning-fg: #b45309;
+  --color-tone-error-bg: #fef2f2;
+  --color-tone-error-fg: #b91c1c;
+  --color-tone-info-bg: #f0f9ff;
+  --color-tone-info-fg: #0369a1;
+  --color-tone-neutral-bg: #f1f5f9;
+  --color-tone-neutral-fg: #334155;
+
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.06);
+  --shadow-overlay: 0 10px 30px rgb(15 23 42 / 0.12);
+  --radius-card: 12px;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+  body {
+    margin: 0;
+    background: var(--rf-bg);
+    -webkit-font-smoothing: antialiased;
+  }
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+  /* Focus ring rõ ràng cho phần tử tự dựng (AntD đã có focus riêng) */
+  .focus-ring:focus-visible {
+    outline: 2px solid var(--rf-primary);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
