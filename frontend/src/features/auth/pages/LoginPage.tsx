@@ -36,8 +36,11 @@ export function LoginPage() {
 
   return (
     <>
-      <h1 className="m-0 text-2xl font-bold text-text">Đăng nhập</h1>
-      <p className="mt-2 mb-8 text-text-secondary">Nhân viên dùng tài khoản cửa hàng cấp; khách dùng email đã đăng ký để theo dõi máy đang sửa.</p>
+      <img src="/favicon.svg" alt="" className="mb-5 size-11" />
+      <h1 className="m-0 text-2xl leading-8 font-semibold tracking-tight text-text">Đăng nhập vào RepairFlow</h1>
+      <p className="mt-2 mb-7 text-sm leading-6 text-text-secondary">
+        Nhân viên dùng tài khoản do cửa hàng cấp. Khách hàng dùng email đã đăng ký để theo dõi máy đang sửa.
+      </p>
 
       {formError && <Alert type="error" showIcon title={formError} className="mb-5" role="alert" />}
 
@@ -68,10 +71,17 @@ export function LoginPage() {
         </Button>
       </Form>
 
-      <p className="mt-6 text-center text-text-secondary">
-        Chưa có tài khoản? <Link to="/register">Đăng ký khách hàng</Link>
-      </p>
-      <p className="mt-2 text-center text-text-secondary">
+      <div className="my-6 flex items-center gap-3 text-xs text-text-muted">
+        <span className="h-px flex-1 bg-border" />
+        Chưa có tài khoản?
+        <span className="h-px flex-1 bg-border" />
+      </div>
+      <Link to="/register" className="no-underline">
+        <Button size="large" block>
+          Đăng ký tài khoản khách hàng
+        </Button>
+      </Link>
+      <p className="mt-5 mb-0 text-center text-sm lg:hidden">
         <Link to="/warranty-check">Tra cứu bảo hành không cần đăng nhập</Link>
       </p>
     </>

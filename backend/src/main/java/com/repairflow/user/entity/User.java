@@ -49,6 +49,10 @@ public class User extends BaseEntity {
     @Column(name = "last_login_at")
     private Instant lastLoginAt;
 
+    /** Lần cập nhật ảnh đại diện gần nhất; null = chưa có ảnh (dữ liệu ảnh ở bảng user_avatars). */
+    @Column(name = "avatar_updated_at")
+    private Instant avatarUpdatedAt;
+
     @Version
     private Long version;
 

@@ -1,5 +1,5 @@
 import { BellOutlined, FileProtectOutlined, SafetyCertificateOutlined } from '@ant-design/icons'
-import { Grid } from 'antd'
+import { Button, Grid } from 'antd'
 import { Suspense, type ReactNode } from 'react'
 import { Link, Outlet } from 'react-router-dom'
 import { RepairScene3D } from '@/components/three/lazyRepairScene'
@@ -68,7 +68,7 @@ export function AuthLayout() {
         </div>
       </aside>
 
-      <main className="flex flex-col">
+      <main className="flex min-h-screen flex-col bg-bg">
         {/* Mobile/tablet: dải thương hiệu gọn thay cho panel 3D (tiết kiệm pin & dữ liệu) */}
         <div className={`relative overflow-hidden lg:hidden ${brandBg} ${screens.sm ? 'h-60' : ''}`}>
           {/* Màn hình vừa (640–1023px): dải 3D phía trên form; điện thoại nhỏ: chỉ logo để tiết kiệm pin */}
@@ -84,11 +84,23 @@ export function AuthLayout() {
             <span className="text-lg font-bold">RepairFlow</span>
           </Link>
         </div>
-        <div className="flex flex-1 items-center justify-center px-5 py-10 sm:px-10">
-          <div className="w-full max-w-[420px]">
+        {/* Desktop: thanh trên cùng – lối vào tra cứu bảo hành cho khách không có tài khoản */}
+        <div className="hidden items-center justify-end gap-3 px-10 pt-8 lg:flex">
+          <span className="text-sm text-text-secondary">Chỉ cần kiểm tra bảo hành?</span>
+          <Link to="/warranty-check" className="no-underline">
+            <Button icon={<SafetyCertificateOutlined />}>Tra cứu bảo hành</Button>
+          </Link>
+        </div>
+        <div className="flex flex-1 items-center justify-center bg-[radial-gradient(rgb(15_23_42/0.06)_1px,transparent_1px)] [background-size:20px_20px] px-5 py-10 sm:px-10">
+          <div className="w-full max-w-[440px] rounded-2xl border border-border bg-surface p-6 shadow-[0_1px_2px_rgb(15_23_42/0.04),0_12px_32px_-12px_rgb(15_23_42/0.14)] sm:p-9">
             <Outlet />
           </div>
         </div>
+        <footer className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 px-5 pb-6 text-xs text-text-muted">
+          <span>© {CURRENT_YEAR} RepairFlow</span>
+          <span aria-hidden="true">·</span>
+          <span>Quản lý sửa chữa &amp; bảo hành thiết bị</span>
+        </footer>
       </main>
     </div>
   )

@@ -1,7 +1,8 @@
 import { BellOutlined, LogoutOutlined, MenuFoldOutlined, MenuUnfoldOutlined, SearchOutlined, UserOutlined } from '@ant-design/icons'
-import { Avatar, Badge, Breadcrumb, Button, Dropdown, Input, Popover, type MenuProps } from 'antd'
+import { Badge, Breadcrumb, Button, Dropdown, Input, Popover, type MenuProps } from 'antd'
 import { useState, type ReactNode } from 'react'
 import { EmptyState } from '@/components/EmptyState'
+import { UserAvatar } from '@/components/UserAvatar'
 import { ROLE_LABELS } from '@/routes/appRoutes'
 import type { Role } from '@/types/enums'
 
@@ -12,6 +13,8 @@ export interface BreadcrumbEntry {
 
 export interface AppHeaderProps {
   breadcrumbs: BreadcrumbEntry[]
+  userId: number
+  avatarVersion?: string | null
   userName: string
   role: Role
   sidebarCollapsed: boolean
@@ -25,10 +28,6 @@ export interface AppHeaderProps {
   notificationContent?: ReactNode
 }
 
-function initials(name: string) {
-  const parts = name.trim().split(/\s+/)
-  return (parts.length > 1 ? parts[parts.length - 1][0] : parts[0]?.[0] ?? '?').toUpperCase()
-}
 
 export function AppHeader(props: AppHeaderProps) {
   const { breadcrumbs, userName, role, sidebarCollapsed, unreadCount, showQuickSearch } = props
@@ -102,9 +101,7 @@ export function AppHeader(props: AppHeaderProps) {
 
         <Dropdown menu={{ items: userMenu }} trigger={['click']} placement="bottomRight">
           <button type="button" className="focus-ring flex cursor-pointer items-center gap-2.5 rounded-lg border-none bg-transparent px-2 py-1 hover:bg-tone-neutral-bg">
-            <Avatar size={32} className="bg-primary font-semibold">
-              {initials(userName)}
-            </Avatar>
+            <UserAvatar userId={props.userId} name={userName} version={props.avatarVersion} size={34} />
             <span className="hidden flex-col text-left leading-tight md:flex">
               <span className="text-sm font-medium text-text">{userName}</span>
               <span className="text-xs text-text-secondary">{ROLE_LABELS[role]}</span>

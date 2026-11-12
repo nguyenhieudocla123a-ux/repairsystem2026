@@ -43,3 +43,21 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   BANK_TRANSFER: 'Chuyển khoản',
   CARD: 'Thẻ',
 }
+
+/** Tiến độ (0–100) của phiếu theo 6 mốc chính – dùng cho thanh tiến độ gọn (dashboard khách). */
+const PROGRESS_STEP: Record<RepairStatus, number> = {
+  RECEIVED: 0,
+  INSPECTING: 1,
+  WAITING_CONFIRMATION: 2,
+  APPROVED: 2,
+  REJECTED: 2,
+  WAITING_FOR_PARTS: 3,
+  REPAIRING: 3,
+  COMPLETED: 4,
+  DELIVERED: 5,
+  CANCELLED: 0,
+}
+
+export function repairProgressPercent(status: RepairStatus): number {
+  return Math.round((PROGRESS_STEP[status] / 5) * 100)
+}

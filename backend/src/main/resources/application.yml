@@ -34,6 +34,10 @@ spring:
       timeout: 2s
   cache:
     type: redis
+  servlet:
+    multipart:
+      max-file-size: 2MB           # ảnh đại diện (frontend đã thu nhỏ về 512px trước khi gửi)
+      max-request-size: 3MB
   data.web.pageable:
     max-page-size: 100
     default-page-size: 20

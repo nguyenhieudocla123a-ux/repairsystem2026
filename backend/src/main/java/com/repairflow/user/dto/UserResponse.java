@@ -15,11 +15,13 @@ public record UserResponse(
         UserStatus status,
         Long customerId,
         Instant lastLoginAt,
-        Instant createdAt) {
+        Instant createdAt,
+        /** Phiên bản ảnh đại diện (null = chưa có ảnh) – frontend gắn vào URL ảnh để phá cache khi đổi ảnh. */
+        Instant avatarUpdatedAt) {
 
     /** Mapper viết tay (TD-10). customerId chỉ có với tài khoản CUSTOMER. */
     public static UserResponse from(User user, Long customerId) {
         return new UserResponse(user.getId(), user.getEmail(), user.getFullName(), user.getPhone(), user.getRole(),
-                user.getStatus(), customerId, user.getLastLoginAt(), user.getCreatedAt());
+                user.getStatus(), customerId, user.getLastLoginAt(), user.getCreatedAt(), user.getAvatarUpdatedAt());
     }
 }

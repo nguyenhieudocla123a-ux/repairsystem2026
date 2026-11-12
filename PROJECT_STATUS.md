@@ -223,6 +223,14 @@
 
 **Sự cố môi trường trong lúc làm:** máy thiếu RAM (còn ~1,2/15,7 GB) khiến Docker tự khởi động lại Postgres/Redis và hỏng chuyển tiếp cổng 5433/6379 (kết nối bị cắt EOF) → backend báo DB/Redis DOWN; khắc phục bằng `docker compose restart postgres` và `restart redis` (dữ liệu giữ nguyên).
 
+## Thiết kế lại v2.2 + ảnh đại diện (2026-11-12)
+
+- [x] **Ảnh đại diện (full-stack)**: migration V7 (`user_avatars` + `users.avatar_updated_at`), `PUT/DELETE /auth/me/avatar`, `GET /users/{id}/avatar` (khách chỉ xem ảnh của mình); kiểm tra chữ ký file JPEG/PNG/WebP, ≤ 2 MB; client cắt vuông + nén WebP 512px; hiện ở hồ sơ, header, sidebar, danh sách người dùng
+- [x] Trang **Hồ sơ** thiết kế lại (bìa, ảnh lớn, đổi/xóa ảnh, thông tin tài khoản, thẻ Bảo mật)
+- [x] Trang **Tổng quan** thiết kế lại cho 4 vai trò, bỏ cảnh 3D; StatCard v2
+- [x] **Trang đăng nhập/công khai**: giữ 3D, form trong thẻ, thanh tra cứu bảo hành, chân trang
+- [x] Kiểm tra: AvatarIT (4 test: tải/xem/xóa, file HTML giả ảnh bị chặn, > 2 MB bị chặn, quyền xem); trình duyệt: tải ảnh 900×600 PNG → lưu WebP 4,9 KB, hiện ở 3 nơi, xóa ảnh → về chữ cái đầu; dashboard ADMIN/STAFF/CUSTOMER ở 1440px
+
 ## Lộ trình theo mốc
 
 1. ✅ Phân tích nghiệp vụ + ERD + UI/UX

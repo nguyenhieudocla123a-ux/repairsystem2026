@@ -49,6 +49,21 @@ public class GlobalExceptionHandler {
         return build(ErrorCode.BAD_REQUEST, "Yêu cầu không đúng định dạng", req, List.of());
     }
 
+    /** File tải lên vượt giới hạn multipart (spring.servlet.multipart.max-file-size). */
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiErrorResponse> handleTooLarge(Exception ex, HttpServletRequest req) {
+        return build(ErrorCode.VALIDATION_FAILED, "Ảnh tối đa 2 MB", req, List.of());
+    }
+
+    /** Thiếu phần file / không phải multipart. */
+    @ExceptionHandler({org.springframework.web.multipart.support.MissingServletRequestPartException.class,
+            org.springframework.web.bind.MissingServletRequestParameterException.class,
+            org.springframework.web.multipart.MultipartException.class,
+            org.springframework.web.HttpMediaTypeNotSupportedException.class})
+    public ResponseEntity<ApiErrorResponse> handleMissingPart(Exception ex, HttpServletRequest req) {
+        return build(ErrorCode.BAD_REQUEST, "Yêu cầu không đúng định dạng", req, List.of());
+    }
+
     @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
     public ResponseEntity<ApiErrorResponse> handleOptimisticLock(ObjectOptimisticLockingFailureException ex,
                                                                  HttpServletRequest req) {

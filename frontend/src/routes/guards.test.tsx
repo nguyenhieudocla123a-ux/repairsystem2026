@@ -16,6 +16,7 @@ const customer: AuthUser = {
   customerId: 1,
   lastLoginAt: null,
   createdAt: '2026-11-12T00:00:00Z',
+  avatarUpdatedAt: null,
 }
 
 describe('route guards', () => {

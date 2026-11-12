@@ -14,6 +14,7 @@ const user: AuthUser = {
   customerId: null,
   lastLoginAt: null,
   createdAt: '2026-11-12T00:00:00Z',
+  avatarUpdatedAt: null,
 }
 
 describe('bootstrapSession (khôi phục phiên khi F5)', () => {

@@ -142,6 +142,12 @@ A11y: vùng lỗi có `role="alert"` để screen reader đọc ngay.
 - Link "Bỏ qua tới nội dung chính" (skip link) là phần tử focus đầu tiên.
 - Sidebar thu gọn: tooltip hiện tên mục khi hover icon.
 
+### 4.1d Phiên bản 2.2 – Tổng quan, Hồ sơ, Đăng nhập
+- **Tổng quan** (không còn 3D): `DashboardHeader` (ngày · vai trò, lời chào theo giờ, hành động chính bên phải – nhân viên: *Tiếp nhận thiết bị*, KTV: *Công việc của tôi*, khách: *Gửi yêu cầu sửa*, admin: chọn khoảng thời gian); hàng thẻ KPI; nội dung theo vai trò (admin: biểu đồ doanh thu 2/3 + phân bố trạng thái; nhân viên: bảng *Việc cần xử lý* + *Lối tắt*; KTV: bảng *Việc ưu tiên*; khách: thẻ thiết bị đang sửa có thanh tiến độ).
+- **StatCard v2**: nhãn + ô icon nhỏ ở hàng trên, số lớn, chú thích + "Xem chi tiết →" (thẻ hẹp chỉ hiện mũi tên). 5 thẻ nằm một hàng từ 1280px; lưới 2 cột thì thẻ thứ 5 trải 2 cột (không có hàng trống một nửa).
+- **Hồ sơ**: dải bìa navy + ảnh đại diện 112px có nút máy ảnh, tên + vai trò + liên hệ, nút *Đổi ảnh / Xóa ảnh*; dải thông tin (thành viên từ, đăng nhập gần nhất); thẻ *Thông tin cá nhân* và *Bảo mật* có tiêu đề kèm icon. `UserAvatar` hiển thị ảnh thật ở header, sidebar, danh sách người dùng (chưa có ảnh → chữ cái đầu).
+- **Trang công khai**: giữ cảnh 3D; form nằm trong thẻ trắng bo 16px trên nền chấm mờ, thanh trên có nút *Tra cứu bảo hành*, chân trang; trang đăng nhập có logo, tiêu đề "Đăng nhập vào RepairFlow", nút phụ *Đăng ký tài khoản khách hàng*.
+
 ### 4.1c Lớp chuyển động & hình ảnh (phiên bản 2.1)
 - **Chuyển động** (theo skill *design-taste-frontend*, `index.css`): hover 150ms vào / 120ms ra, bấm 90ms, một đường cong ease-out. Nút nhích lên 1px khi hover, lún 1px + scale .985 khi bấm (trừ nút dạng chữ/link); thẻ bấm được (`.rf-card-link`, VD StatCard) nâng 2px + viền đậm một bậc; liên kết trong nội dung có gạch chân "vẽ" từ trái sang phải (một kiểu duy nhất); khối có `data-enter` nổi lên một lần khi tải trang. Dịch chuyển chỉ với chuột + không bật *giảm chuyển động*; khi giảm chuyển động chỉ đổi màu. Lớp này **không nằm trong @layer** để thắng class tiện ích của Tailwind.
 - **Màn hình cảm ứng**: nút, ô nhập, select, date picker tối thiểu 44px.

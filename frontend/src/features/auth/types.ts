@@ -11,6 +11,8 @@ export interface AuthUser {
   customerId: number | null
   lastLoginAt: string | null
   createdAt: string
+  /** Phiên bản ảnh đại diện (ISO) – null = chưa có ảnh */
+  avatarUpdatedAt: string | null
 }
 
 export interface AuthResponse {

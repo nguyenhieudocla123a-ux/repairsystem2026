@@ -1,10 +1,13 @@
 import { Menu, type MenuProps } from 'antd'
 import { useMemo } from 'react'
+import { UserAvatar } from '@/components/UserAvatar'
 import { ROLE_LABELS, routesForRole } from '@/routes/appRoutes'
 import type { Role } from '@/types/enums'
 
 export interface SidebarProps {
   role: Role
+  userId: number
+  avatarVersion?: string | null
   userName: string
   collapsed: boolean
   selectedPath: string
@@ -14,7 +17,7 @@ export interface SidebarProps {
 type MenuItem = Required<MenuProps>['items'][number]
 
 /** Sidebar trình bày thuần (presentational): nhận role & đường dẫn qua props → dễ test, dùng lại được ở UI kit. */
-export function Sidebar({ role, userName, collapsed, selectedPath, onNavigate }: SidebarProps) {
+export function Sidebar({ role, userId, avatarVersion, userName, collapsed, selectedPath, onNavigate }: SidebarProps) {
   const items = useMemo<MenuItem[]>(() => {
     const routes = routesForRole(role).filter((r) => r.inMenu !== false)
     const result: MenuItem[] = []
@@ -58,9 +61,7 @@ export function Sidebar({ role, userName, collapsed, selectedPath, onNavigate }:
 
       {!collapsed && (
         <div className="m-3 flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.04] px-3 py-2.5">
-          <span aria-hidden="true" className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-sky-700 text-sm font-semibold text-white">
-            {userName.trim().split(/\s+/).pop()?.[0]?.toUpperCase() ?? '?'}
-          </span>
+          <UserAvatar userId={userId} name={userName} version={avatarVersion} size={36} />
           <span className="min-w-0">
             <span className="block truncate text-sm font-medium text-white">{userName}</span>
             <span className="block text-xs text-sidebar-muted">{ROLE_LABELS[role]}</span>

@@ -3,7 +3,7 @@ import { App, Button, Card, Dropdown, Input, Select, Table, type MenuProps, type
 import { useState } from 'react'
 import { useAppSelector } from '@/app/hooks'
 import { EmptyState } from '@/components/EmptyState'
-import { InitialAvatar } from '@/components/DeviceArt'
+import { UserAvatar } from '@/components/UserAvatar'
 import { ErrorState } from '@/components/ErrorState'
 import { PageHeader } from '@/components/PageHeader'
 import { StatusTag } from '@/components/StatusTag'
@@ -99,7 +99,7 @@ export function UsersPage({ title, description, scopeRoles }: UsersPageProps) {
       sortOrder: sortOrder('fullName'),
       render: (_, u) => (
         <div className="flex min-w-0 items-center gap-3">
-          <InitialAvatar name={u.fullName} />
+          <UserAvatar userId={u.id} name={u.fullName} version={u.avatarUpdatedAt} />
           <div className="min-w-0">
             <div className="truncate font-medium text-text">
               {u.fullName} {u.id === currentUserId && <span className="text-xs font-normal text-text-muted">(bạn)</span>}

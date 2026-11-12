@@ -44,6 +44,7 @@ export function UiKitPage() {
   return (
     <AppShell
       role={role}
+      userId={0}
       userName="Nguyễn Văn Minh"
       breadcrumbs={[{ title: 'Dev' }, { title: 'UI Kit' }]}
       selectedPath="/dashboard"

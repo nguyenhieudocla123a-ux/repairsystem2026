@@ -62,6 +62,9 @@ Frontend: interceptor chỉ tự refresh khi `401` + `code = TOKEN_EXPIRED`.
 | GET | `/auth/me` | A S T C | Thông tin user hiện tại |
 | PUT | `/auth/me` | A S T C | Cập nhật họ tên, SĐT |
 | PUT | `/auth/me/password` | A S T C | Đổi mật khẩu → thu hồi mọi phiên khác, trả `AuthResponse` + cookie mới cho thiết bị hiện tại |
+| PUT | `/auth/me/avatar` | A S T C | Tải lên / thay ảnh đại diện – `multipart/form-data`, field `file`; JPEG/PNG/WebP ≤ 2 MB, loại ảnh xác định bằng chữ ký file (không tin Content-Type); trả `UserResponse` |
+| DELETE | `/auth/me/avatar` | A S T C | Xóa ảnh đại diện → `UserResponse` với `avatarUpdatedAt = null` |
+| GET | `/users/{id}/avatar` | A S T C³ | Ảnh đại diện (bytes, `Cache-Control: private, max-age=604800`, ETag). ³ Khách chỉ xem ảnh của chính mình, ngoài phạm vi → `404`. Client gắn `?v={avatarUpdatedAt}` để phá cache khi đổi ảnh |
 
 ```json
 // POST /auth/login  →  LoginRequest
@@ -86,6 +89,8 @@ Mật khẩu: 8–72 ký tự, có chữ hoa, chữ thường, số (`@StrongPas
 - `refresh` dùng lại token đã xoay vòng → `401` và thu hồi toàn bộ phiên đó (reuse detection).
 - `logout` luôn `204` (idempotent), xóa cookie (`Max-Age=0`).
 - `UserResponse` có thêm `lastLoginAt`, `createdAt`.
+
+`UserResponse` có thêm `avatarUpdatedAt` (ISO, `null` = chưa có ảnh).
 
 ## 3. Users (quản trị) – `/users` · Role: **A**
 

@@ -8,7 +8,10 @@ const { Sider, Content } = Layout
 
 export interface AppShellProps {
   role: Role
+  userId: number
   userName: string
+  /** avatarUpdatedAt – null = chưa có ảnh */
+  avatarVersion?: string | null
   breadcrumbs: BreadcrumbEntry[]
   selectedPath: string
   unreadCount?: number
@@ -38,6 +41,8 @@ export function AppShell(props: AppShellProps) {
   const sidebar = (isCollapsed: boolean) => (
     <Sidebar
       role={props.role}
+      userId={props.userId}
+      avatarVersion={props.avatarVersion}
       userName={props.userName}
       collapsed={isCollapsed}
       selectedPath={props.selectedPath}
@@ -81,6 +86,8 @@ export function AppShell(props: AppShellProps) {
       <Layout className="min-w-0">
         <AppHeader
           breadcrumbs={props.breadcrumbs}
+          userId={props.userId}
+          avatarVersion={props.avatarVersion}
           userName={props.userName}
           role={props.role}
           sidebarCollapsed={isMobile ? !drawerOpen : collapsed}

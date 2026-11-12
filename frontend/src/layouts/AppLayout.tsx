@@ -30,6 +30,8 @@ export function AppLayout() {
   return (
     <AppShell
       role={user.role}
+      userId={user.id}
+      avatarVersion={user.avatarUpdatedAt}
       userName={user.fullName}
       breadcrumbs={breadcrumbs}
       selectedPath={location.pathname}
