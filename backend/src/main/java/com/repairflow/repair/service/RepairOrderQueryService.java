@@ -6,6 +6,9 @@ import com.repairflow.common.web.PageResponse;
 import com.repairflow.customer.dto.CustomerDtos.CustomerBrief;
 import com.repairflow.customer.service.CurrentCustomerResolver;
 import com.repairflow.device.dto.DeviceDtos.DeviceSummary;
+import com.repairflow.quotation.entity.Quotation;
+import com.repairflow.quotation.entity.QuotationStatus;
+import com.repairflow.quotation.repository.QuotationRepository;
 import com.repairflow.repair.dto.RepairOrderDtos.RepairOrderDetailResponse;
 import com.repairflow.repair.dto.RepairOrderDtos.RepairOrderSummaryResponse;
 import com.repairflow.repair.dto.RepairOrderDtos.StatusHistoryResponse;
@@ -17,12 +20,16 @@ import com.repairflow.repair.repository.RepairOrderRepository;
 import com.repairflow.repair.repository.RepairStatusHistoryRepository;
 import com.repairflow.security.AuthenticatedUser;
 import com.repairflow.user.entity.Role;
+import com.repairflow.warranty.entity.Warranty;
+import com.repairflow.warranty.repository.WarrantyRepository;
 import jakarta.persistence.criteria.Predicate;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -45,12 +52,16 @@ public class RepairOrderQueryService {
     private static final Sort DEFAULT_SORT = Sort.by(Sort.Direction.DESC, "receivedAt");
     /** Múi giờ cửa hàng – lọc "từ ngày / đến ngày" theo giờ Việt Nam. */
     private static final ZoneId SHOP_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+    private static final Set<RepairStatus> PARTS_STATUSES =
+            java.util.EnumSet.of(RepairStatus.APPROVED, RepairStatus.REPAIRING, RepairStatus.WAITING_FOR_PARTS);
 
     private final RepairOrderRepository repository;
     private final RepairStatusHistoryRepository historyRepository;
     private final RepairAccessGuard accessGuard;
     private final RepairStatusPolicy policy;
     private final CurrentCustomerResolver currentCustomer;
+    private final QuotationRepository quotationRepository;
+    private final WarrantyRepository warrantyRepository;
 
     public record SearchFilter(Collection<RepairStatus> statuses, Long technicianId, Long customerId,
                                RepairPriority priority, String keyword, LocalDate from, LocalDate to) {
@@ -115,6 +126,11 @@ public class RepairOrderQueryService {
         boolean backOffice = user.role() == Role.ADMIN || user.role() == Role.STAFF;
         boolean assignedTech = user.role() == Role.TECHNICIAN && o.getTechnician() != null
                 && o.getTechnician().getId().equals(user.id());
+        RepairStatus s = o.getStatus();
+        BigDecimal approvedTotal = quotationRepository
+                .findFirstByRepairOrderIdAndStatusOrderByVersionNoDesc(o.getId(), QuotationStatus.APPROVED)
+                .map(Quotation::getTotalAmount).orElse(null);
+        Warranty warranty = warrantyRepository.findByRepairOrderId(o.getId()).orElse(null);
         return new RepairOrderDetailResponse(
                 o.getId(), o.getCode(), o.getStatus(), o.getPriority(),
                 CustomerBrief.from(o.getCustomer()), DeviceSummary.from(o.getDevice()),
@@ -128,6 +144,12 @@ public class RepairOrderQueryService {
                 open && backOffice,
                 open && backOffice,
                 open && (assignedTech || user.role() == Role.ADMIN),
+                backOffice && policy.isEdgeAllowed(s, RepairStatus.WAITING_CONFIRMATION),
+                backOffice && (s == RepairStatus.COMPLETED || s == RepairStatus.REJECTED),
+                (assignedTech || user.role() == Role.ADMIN) && PARTS_STATUSES.contains(s),
+                approvedTotal,
+                warranty == null ? null : warranty.getId(),
+                warranty == null ? null : warranty.getCode(),
                 o.getVersion());
     }
 

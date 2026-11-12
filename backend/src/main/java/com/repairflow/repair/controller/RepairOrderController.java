@@ -3,6 +3,7 @@ package com.repairflow.repair.controller;
 import com.repairflow.common.web.PageResponse;
 import com.repairflow.repair.dto.RepairOrderDtos.AssignTechnicianRequest;
 import com.repairflow.repair.dto.RepairOrderDtos.CreateRepairOrderRequest;
+import com.repairflow.repair.dto.RepairOrderDtos.DeliverRequest;
 import com.repairflow.repair.dto.RepairOrderDtos.DiagnosisRequest;
 import com.repairflow.repair.dto.RepairOrderDtos.RepairOrderDetailResponse;
 import com.repairflow.repair.dto.RepairOrderDtos.RepairOrderSummaryResponse;
@@ -11,8 +12,9 @@ import com.repairflow.repair.dto.RepairOrderDtos.TransitionRequest;
 import com.repairflow.repair.dto.RepairOrderDtos.UpdateRepairOrderRequest;
 import com.repairflow.repair.entity.RepairPriority;
 import com.repairflow.repair.entity.RepairStatus;
-import com.repairflow.repair.service.RepairOrderQueryService;
+import com.repairflow.repair.service.DeliveryService;
 import com.repairflow.repair.service.RepairOrderQueryService.SearchFilter;
+import com.repairflow.repair.service.RepairOrderQueryService;
 import com.repairflow.repair.service.RepairOrderService;
 import com.repairflow.security.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.Operation;
@@ -45,6 +47,7 @@ public class RepairOrderController {
 
     private final RepairOrderService service;
     private final RepairOrderQueryService queryService;
+    private final DeliveryService deliveryService;
 
     @Operation(summary = "Danh sách phiếu (KTV tự động chỉ thấy phiếu được giao)")
     @PreAuthorize("hasAnyRole('ADMIN','STAFF','TECHNICIAN')")
@@ -116,5 +119,14 @@ public class RepairOrderController {
     public RepairOrderDetailResponse transition(@PathVariable Long id, @Valid @RequestBody TransitionRequest request,
                                                 @AuthenticationPrincipal AuthenticatedUser user) {
         return service.transition(id, request.toStatus(), request.note(), request.version(), user);
+    }
+
+    @Operation(summary = "Bàn giao máy (COMPLETED → DELIVERED kèm thanh toán + bảo hành; REJECTED → DELIVERED trả máy không sửa)")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PostMapping("/{id}/deliver")
+    public RepairOrderDetailResponse deliver(@PathVariable Long id,
+                                             @Valid @RequestBody DeliverRequest request,
+                                             @AuthenticationPrincipal AuthenticatedUser user) {
+        return deliveryService.deliver(id, request, user);
     }
 }

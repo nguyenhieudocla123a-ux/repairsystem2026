@@ -3,12 +3,13 @@ package com.repairflow.repair.service;
 import com.repairflow.common.audit.AuditService;
 import com.repairflow.common.exception.BusinessException;
 import com.repairflow.common.exception.ErrorCode;
-import com.repairflow.common.util.CodeGenerator;
 import com.repairflow.common.util.CodeGenerator.CodeType;
+import com.repairflow.common.util.CodeGenerator;
 import com.repairflow.customer.entity.Customer;
 import com.repairflow.customer.service.CustomerService;
 import com.repairflow.device.entity.Device;
 import com.repairflow.device.repository.DeviceRepository;
+import com.repairflow.inventory.repository.InventoryTransactionRepository;
 import com.repairflow.repair.dto.RepairOrderDtos.DiagnosisRequest;
 import com.repairflow.repair.dto.RepairOrderDtos.ReceptionInfo;
 import com.repairflow.repair.dto.RepairOrderDtos.RepairOrderDetailResponse;
@@ -54,6 +55,7 @@ public class RepairOrderService {
     private final AuditService auditService;
     private final EntityManager entityManager;
     private final Clock clock;
+    private final InventoryTransactionRepository inventoryTransactionRepository;
 
     /** Tiếp nhận tại quầy: tạo phiếu RECEIVED. */
     @Transactional
@@ -136,6 +138,11 @@ public class RepairOrderService {
     @Transactional
     public void changeStatus(RepairOrder order, RepairStatus to, AuthenticatedUser actor, Channel channel, String note) {
         policy.assertCanTransition(order, to, actor, channel, note);
+        if (to == RepairStatus.CANCELLED && order.getId() != null
+                && inventoryTransactionRepository.usageOfOrder(order.getId()).stream()
+                        .anyMatch(u -> u.quantityUsed() != null && u.quantityUsed() > 0)) {
+            throw BusinessException.conflict("Phiếu còn linh kiện đã xuất – cần hoàn kho trước khi hủy phiếu");
+        }
         RepairStatus from = order.getStatus();
         order.setStatus(to);
         switch (to) {

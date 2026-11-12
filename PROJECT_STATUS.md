@@ -143,6 +143,18 @@
 
 **Chưa làm trong mốc này (theo kế hoạch):** báo giá, xuất kho, bàn giao/thanh toán (Mốc 6); bảo hành, thông báo, dashboard (Mốc 7). Trang chi tiết phiếu hiển thị gợi ý bước tiếp theo, ghi rõ chức năng nào có ở mốc sau.
 
+## Mốc 6 – ĐANG LÀM (cập nhật 2026-11-12)
+
+**Backend – xong & đã kiểm thử (`mvnw verify`: 49 unit + 55 integration ✅):**
+- Kho: CRUD linh kiện, nhập kho, điều chỉnh kiểm kê (ADMIN), xuất/hoàn linh kiện cho phiếu với khóa bi quan `SELECT … FOR UPDATE`, sổ kho, ẩn giá vốn với KTV
+- Báo giá: nháp → gửi (phiếu → WAITING_CONFIRMATION) → khách/nhân viên thay khách duyệt hoặc từ chối; báo giá cũ → SUPERSEDED; tổng tiền tính ở Backend
+- Bàn giao: COMPLETED/REJECTED → DELIVERED, số tiền mặc định từ báo giá đã duyệt, tự tạo bảo hành
+- Hủy phiếu / trả máy bị chặn khi còn linh kiện chưa hoàn kho
+- Test đồng thời: 2 KTV cùng xuất chiếc linh kiện cuối → đúng 1 thành công, tồn = 0
+- Lỗi tìm thấy nhờ test: sổ kho được INSERT trước khi gắn phiếu → CHECK constraint ở DB chặn (đã sửa)
+
+**Chưa làm:** Frontend Mốc 6 (trang kho & lịch sử kho, tab báo giá / linh kiện / bàn giao trong chi tiết phiếu, báo giá chờ duyệt của khách), kiểm thử trình duyệt, cập nhật api-specification & TECHNICAL_DECISIONS cho Mốc 6.
+
 ## Lộ trình theo mốc
 
 1. ✅ Phân tích nghiệp vụ + ERD + UI/UX

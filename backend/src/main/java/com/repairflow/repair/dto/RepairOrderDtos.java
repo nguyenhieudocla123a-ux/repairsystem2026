@@ -9,7 +9,11 @@ import com.repairflow.repair.entity.RepairStatus;
 import com.repairflow.repair.entity.RepairStatusHistory;
 import com.repairflow.user.entity.Role;
 import com.repairflow.user.entity.User;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.FutureOrPresent;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -73,6 +77,18 @@ public final class RepairOrderDtos {
             @NotNull(message = "Thiếu version") Long version) {
     }
 
+    /** Bàn giao: finalAmount bỏ trống → lấy tổng báo giá đã duyệt (máy đã sửa) hoặc 0 (trả máy không sửa). */
+    public record DeliverRequest(
+            @DecimalMin(value = "0", message = "Số tiền không được âm")
+            @Digits(integer = 13, fraction = 2) BigDecimal finalAmount,
+            PaymentMethod paymentMethod,
+            @Min(value = 0, message = "Số tháng bảo hành từ 0 đến 24")
+            @Max(value = 24, message = "Số tháng bảo hành từ 0 đến 24") Integer warrantyMonths,
+            @Size(max = 2000) String warrantyTerms,
+            @Size(max = 2000) String note,
+            Long version) {
+    }
+
     public record CancelRequest(@NotBlank(message = "Vui lòng nhập lý do hủy") @Size(max = 2000) String reason) {
     }
 
@@ -111,6 +127,11 @@ public final class RepairOrderDtos {
             Set<RepairStatus> allowedTransitions,
             /** Có được sửa thông tin tiếp nhận / phân công / ghi chẩn đoán hay không. */
             boolean canEditReception, boolean canAssign, boolean canDiagnose,
+            /** Lập/gửi báo giá, bàn giao, xuất/hoàn linh kiện – cờ cho người dùng hiện tại. */
+            boolean canQuote, boolean canDeliver, boolean canUseParts,
+            /** Tổng báo giá đã duyệt mới nhất (số tiền gợi ý khi bàn giao). */
+            BigDecimal approvedQuotationTotal,
+            Long warrantyId, String warrantyCode,
             Long version) {
     }
 
