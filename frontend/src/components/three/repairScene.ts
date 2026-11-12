@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
+import { createTechnician } from './technician'
 
 /**
  * Cảnh 3D "bàn sửa chữa" theo hướng chân thực: một chiếc điện thoại (khung titan, mặt kính phản chiếu,
@@ -11,15 +12,18 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
  * Quy tắc hiệu năng (ui-ux-pro-max – stack threejs):
  * - Mọi geometry/material/texture tạo MỘT lần; vòng lặp chỉ đổi transform.
  * - setAnimationLoop → dừng khi tab ẩn hoặc canvas ra khỏi màn hình; dispose() giải phóng hết tài nguyên GPU.
- * - Giảm chuyển động: không có vòng lặp tự chạy; cảnh chỉ nghiêng theo chuột (mỗi lần di chuột vẽ một khung).
+ * - Trang công khai luôn có chuyển động (yêu cầu của chủ sản phẩm) nhưng có nút tạm dừng → setAnimate(false)
+ *   dừng vòng lặp và giữ nguyên khung hình hiện tại (WCAG 2.2.2).
  */
 export interface RepairSceneOptions {
-  reducedMotion: boolean
+  /** false = đứng yên (người dùng bấm tạm dừng) */
+  animate: boolean
   /** hero: panel lớn trang công khai (cụm lệch phải chừa chỗ tiêu đề) · banner: khung thấp trong dashboard */
   layout?: 'hero' | 'banner'
 }
 
 export interface RepairSceneHandle {
+  setAnimate: (on: boolean) => void
   dispose: () => void
 }
 
@@ -247,7 +251,7 @@ interface Floater {
   spin: THREE.Vector3
 }
 
-export function createRepairScene(container: HTMLElement, { reducedMotion, layout = 'hero' }: RepairSceneOptions): RepairSceneHandle | null {
+export function createRepairScene(container: HTMLElement, { animate: animateInitially, layout = 'hero' }: RepairSceneOptions): RepairSceneHandle | null {
   let renderer: THREE.WebGLRenderer
   try {
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' })
@@ -265,6 +269,8 @@ export function createRepairScene(container: HTMLElement, { reducedMotion, layou
   camera.position.set(0, 0.3, 11.5)
 
   let disposed = false
+  /** Đang chạy vòng lặp chuyển động (false = người dùng bấm tạm dừng) */
+  let playing = animateInitially
   const scene = new THREE.Scene()
   /** Vẽ một khung – bỏ qua nếu cảnh đã bị dispose (callback rAF / fonts.ready đến muộn). */
   const renderOnce = () => {
@@ -292,8 +298,8 @@ export function createRepairScene(container: HTMLElement, { reducedMotion, layou
   const root = new THREE.Group()
   if (layout === 'hero') {
     // Vùng nhìn thấy ≈ ±2,9 × ±3,1: tiêu đề chiếm góc trên-trái, dải thẻ chiếm ~25% dưới → cụm nằm giữa-phải
-    root.scale.setScalar(0.62)
-    root.position.set(0.95, 0.75, 0)
+    root.scale.setScalar(0.55)
+    root.position.set(1.3, 0.62, 0)
   } else {
     root.scale.setScalar(0.62)
   }
@@ -416,7 +422,8 @@ export function createRepairScene(container: HTMLElement, { reducedMotion, layou
   lidar.position.set(plateau.position.x + 0.27, plateau.position.y - 0.33, plateau.position.z - 0.035)
   phone.add(lidar)
 
-  phone.rotation.set(-0.06, -0.5, 0.05)
+  phone.rotation.set(-0.06, -0.35, 0.05)
+  phone.position.x = -0.95
   root.add(phone)
 
   // Font web có thể tải xong sau lần vẽ đầu → vẽ lại để chữ tiếng Việt đúng font
@@ -424,7 +431,7 @@ export function createRepairScene(container: HTMLElement, { reducedMotion, layou
     if (disposed) return
     drawScreen(screenCanvas)
     screenTex.needsUpdate = true
-    if (reducedMotion) renderOnce()
+    if (!playing) renderOnce()
   })
 
   // ------------------------------------------------------------------ Linh kiện tháo rời
@@ -522,20 +529,31 @@ export function createRepairScene(container: HTMLElement, { reducedMotion, layou
     root.add(obj)
     floaters.push({ obj, base: obj.position.clone(), phase: Math.random() * Math.PI * 2, spin: new THREE.Vector3(...spin) })
   }
-  addFloater(battery, [-2.4, -1.2, -0.6], [0.15, 0.55, -0.12], [0, 0.12, 0])
-  addFloater(board, [2.25, 1.0, -0.3], [-0.1, -0.6, 0.18], [0, -0.1, 0])
-  addFloater(camModule, [2.05, -1.5, 0.6], [0.3, -0.5, 0.2], [0.05, 0.15, 0])
-  addFloater(makeScrew(), [0.2, 3.0, 0.9], [0.6, 0, 0.5], [0.2, 0.6, 0])
-  addFloater(makeScrew(), [2.5, -2.4, 1.0], [-0.4, 0, -0.7], [0.3, 0.5, 0])
-  addFloater(makeScrew(), [1.1, 2.75, 0.4], [0.3, 0, -0.4], [0.25, 0.55, 0])
-  addFloater(simTray, [-1.6, -2.3, 0.8], [0.2, 0.3, 0.9], [0, 0.2, 0.1])
+  addFloater(battery, [-3.35, -1.3, -0.6], [0.15, 0.55, -0.12], [0, 0.12, 0])
+  addFloater(camModule, [0.75, 3.15, -0.4], [0.3, -0.5, 0.2], [0.05, 0.15, 0])
+  addFloater(makeScrew(), [-0.5, 3.05, 0.9], [0.6, 0, 0.5], [0.2, 0.6, 0])
+  addFloater(makeScrew(), [0.45, -2.75, 1.0], [-0.4, 0, -0.7], [0.3, 0.5, 0])
+  addFloater(simTray, [-2.75, 1.9, 0.6], [0.2, 0.3, 0.9], [0, 0.2, 0.1])
+
+  // Anh thợ đứng bên phải, quay về phía máy (và hơi hướng ra người xem)
+  const tech = createTechnician()
+  tech.group.position.set(1.45, -PH / 2 - 0.42, 0.55)
+  tech.group.rotation.y = -0.95
+  tech.group.scale.setScalar(1.12)
+  root.add(tech.group)
+  const techShadowTex = makeShadowTexture()
+  const techShadowMat = new THREE.MeshBasicMaterial({ map: techShadowTex, transparent: true, depthWrite: false, opacity: 0.9 })
+  const techShadow = new THREE.Mesh(g(new THREE.PlaneGeometry(1.9, 0.9)), techShadowMat)
+  techShadow.rotation.x = -Math.PI / 2
+  techShadow.position.set(1.45, -PH / 2 - 0.41, 0.55)
+  root.add(techShadow)
 
   // Bóng mềm dưới điện thoại
   const shadowTex = makeShadowTexture()
   const shadowMat = new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.85 })
   const shadow = new THREE.Mesh(g(new THREE.PlaneGeometry(3.6, 1.1)), shadowMat)
   shadow.rotation.x = -Math.PI / 2
-  shadow.position.set(0, -PH / 2 - 0.55, 0)
+  shadow.position.set(-0.95, -PH / 2 - 0.55, 0)
   root.add(shadow)
 
   // Bụi sáng rất nhẹ ở hậu cảnh (chiều sâu)
@@ -560,31 +578,11 @@ export function createRepairScene(container: HTMLElement, { reducedMotion, layou
     camera.updateProjectionMatrix()
     renderer.domElement.style.width = `${w}px`
     renderer.domElement.style.height = `${h}px`
-    if (reducedMotion) renderOnce()
+    if (!playing) renderOnce()
   }
   const ro = new ResizeObserver(resize)
   ro.observe(container)
   resize()
-
-  // ------------------------------------------------------------------ Tương tác: nghiêng theo con trỏ
-  const pointer = new THREE.Vector2()
-  let framePending = false
-  const onPointer = (e: PointerEvent) => {
-    const rect = container.getBoundingClientRect()
-    pointer.set(((e.clientX - rect.left) / rect.width) * 2 - 1, ((e.clientY - rect.top) / rect.height) * 2 - 1)
-    pointer.clampScalar(-1.5, 1.5)
-    if (reducedMotion && !framePending) {
-      // Không có vòng lặp → vẽ một khung theo vị trí chuột (gộp nhiều sự kiện vào 1 frame)
-      framePending = true
-      requestAnimationFrame(() => {
-        framePending = false
-        root.rotation.y = pointer.x * 0.3
-        root.rotation.x = pointer.y * 0.12
-        renderOnce()
-      })
-    }
-  }
-  window.addEventListener('pointermove', onPointer, { passive: true })
 
   const timer = new THREE.Timer()
   timer.connect(document)
@@ -592,10 +590,10 @@ export function createRepairScene(container: HTMLElement, { reducedMotion, layou
     timer.update(timestamp)
     const t = timer.getElapsed()
     const dt = Math.min(timer.getDelta(), 0.05)
-    root.rotation.y += (pointer.x * 0.25 - root.rotation.y) * 0.04
-    root.rotation.x += (pointer.y * 0.1 - root.rotation.x) * 0.04
-    // Xoay chậm như bàn trưng bày: lộ cạnh viền titan và nút bấm
-    phone.rotation.y = -0.5 + Math.sin(t * 0.3) * 0.38
+    // Điện thoại xoay rất nhẹ (anh thợ đang làm việc trên máy); cả cụm đung đưa chậm để có chiều sâu
+    phone.rotation.y = -0.35 + Math.sin(t * 0.3) * 0.12
+    root.rotation.y = Math.sin(t * 0.18) * 0.06
+    tech.update(t)
     phone.position.y = Math.sin(t * 0.7) * 0.06
     shadow.scale.setScalar(1 - Math.sin(t * 0.7) * 0.04)
     for (const f of floaters) {
@@ -610,31 +608,39 @@ export function createRepairScene(container: HTMLElement, { reducedMotion, layou
 
   // ------------------------------------------------------------------ Chỉ chạy khi thấy được
   let visibleOnScreen = true
-  const sync = () => renderer.setAnimationLoop(!reducedMotion && visibleOnScreen && !document.hidden ? animate : null)
+  const sync = () => {
+    renderer.setAnimationLoop(playing && visibleOnScreen && !document.hidden ? animate : null)
+    if (!playing) {
+      // Đứng yên: giữ khung hình hiện tại; vẽ thêm ở frame kế tiếp vì lần vẽ đầu có thể trước khi canvas sẵn sàng
+      renderOnce()
+      requestAnimationFrame(renderOnce)
+    }
+  }
   const io = new IntersectionObserver(([entry]) => {
     visibleOnScreen = entry.isIntersecting
     sync()
   })
   io.observe(container)
   document.addEventListener('visibilitychange', sync)
-  if (reducedMotion) {
-    renderOnce()
-    // Vẽ thêm ở frame kế tiếp: lần vẽ đầu có thể xảy ra trước khi trình duyệt dựng xong lớp canvas
-    requestAnimationFrame(renderOnce)
-  } else sync()
+  sync()
 
   return {
+    setAnimate(on: boolean) {
+      if (on === playing || disposed) return
+      playing = on
+      sync()
+    },
     dispose() {
       disposed = true
       renderer.setAnimationLoop(null)
       io.disconnect()
       ro.disconnect()
       document.removeEventListener('visibilitychange', sync)
-      window.removeEventListener('pointermove', onPointer)
+      tech.dispose()
       timer.dispose()
       for (const geo of geos) geo.dispose()
-      for (const m of [titanium, backGlass, plateauGlass, lensRing, lensGlass, blackPlastic, glassCoat, foil, pcb, shieldCan, chipMat, gold, screwMat, flexMat, flashMat, screenMat, labelMat, shadowMat, dustMat]) m.dispose()
-      for (const t of [screenTex, labelTex, shadowTex]) t.dispose()
+      for (const m of [titanium, backGlass, plateauGlass, lensRing, lensGlass, blackPlastic, glassCoat, foil, pcb, shieldCan, chipMat, gold, screwMat, flexMat, flashMat, screenMat, labelMat, shadowMat, dustMat, techShadowMat]) m.dispose()
+      for (const t of [screenTex, labelTex, shadowTex, techShadowTex]) t.dispose()
       envTexture.dispose()
       pmrem.dispose()
       renderer.dispose()

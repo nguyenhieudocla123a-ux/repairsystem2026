@@ -1,12 +1,28 @@
-import { BellOutlined, FileProtectOutlined, SafetyCertificateOutlined } from '@ant-design/icons'
+import { BellOutlined, FileProtectOutlined, PauseOutlined, PlayCircleOutlined, SafetyCertificateOutlined } from '@ant-design/icons'
 import { Button, Grid } from 'antd'
-import { Suspense, useRef, type ReactNode } from 'react'
+import { Suspense, useState, type ReactNode } from 'react'
 import { Link, Outlet } from 'react-router-dom'
 import { RepairScene3D } from '@/components/three/lazyRepairScene'
 import { Scene3DBoundary } from '@/components/three/Scene3DBoundary'
-import { usePointerVars } from '@/hooks/usePointerVars'
 
 const CURRENT_YEAR = new Date().getFullYear()
+const MOTION_KEY = 'rf-public-motion-paused'
+
+/** Nút tạm dừng / tiếp tục chuyển động (WCAG 2.2.2 – nội dung chuyển động > 5 giây phải dừng được). */
+function MotionToggle({ paused, onToggle }: { paused: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={paused}
+      aria-label={paused ? 'Tiếp tục chuyển động' : 'Tạm dừng chuyển động'}
+      title={paused ? 'Tiếp tục chuyển động' : 'Tạm dừng chuyển động'}
+      className="focus-ring pointer-events-auto flex size-10 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-white/10 text-base text-white backdrop-blur-md hover:bg-white/20"
+    >
+      {paused ? <PlayCircleOutlined /> : <PauseOutlined />}
+    </button>
+  )
+}
 
 const FEATURES: { icon: ReactNode; title: string; text: string }[] = [
   { icon: <BellOutlined />, title: 'Cập nhật tức thì', text: 'Khách nhận thông báo ngay khi phiếu đổi trạng thái' },
@@ -20,24 +36,25 @@ const brandBg = 'bg-[radial-gradient(120%_80%_at_70%_20%,#0C4A6E_0%,#0B1220_55%,
 /** Bố cục trang công khai: panel thương hiệu 3D (≥1024px) + vùng form. */
 export function AuthLayout() {
   const screens = Grid.useBreakpoint()
-  const asideRef = useRef<HTMLElement>(null)
-  const cardRef = useRef<HTMLDivElement>(null)
-  usePointerVars(asideRef, 400)
-  usePointerVars(cardRef, 220)
+  const [paused, setPaused] = useState(() => localStorage.getItem(MOTION_KEY) === '1')
+  const togglePaused = () => {
+    setPaused((p) => {
+      localStorage.setItem(MOTION_KEY, p ? '0' : '1')
+      return !p
+    })
+  }
   return (
-    <div className="grid min-h-screen bg-bg lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
-      <aside ref={asideRef} className={`rf-spotlight relative hidden overflow-hidden text-white lg:flex lg:flex-col ${brandBg}`}>
+    <div className={`grid min-h-screen bg-bg lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] ${paused ? 'rf-motion-paused' : ''}`}>
+      <aside className={`relative hidden overflow-hidden text-white lg:flex lg:flex-col ${brandBg}`}>
         {/* Lưới mờ tạo cảm giác "bàn kỹ thuật" */}
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 opacity-[0.07] [background-image:linear-gradient(#fff_1px,transparent_1px),linear-gradient(90deg,#fff_1px,transparent_1px)] [background-size:48px_48px] [mask-image:radial-gradient(70%_60%_at_60%_40%,#000,transparent)]"
         />
-        {/* Đèn rọi theo chuột: lưới kỹ thuật sáng lên quanh con trỏ (nằm sau cảnh 3D) */}
-        <div aria-hidden="true" className="rf-spotlight-grid pointer-events-none absolute inset-0" />
         {screens.lg && (
           <Scene3DBoundary>
             <Suspense fallback={null}>
-              <RepairScene3D className="absolute inset-0" />
+              <RepairScene3D className="absolute inset-0" paused={paused} />
             </Suspense>
           </Scene3DBoundary>
         )}
@@ -46,13 +63,15 @@ export function AuthLayout() {
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgb(7_11_20/0.85)_0%,rgb(7_11_20/0.35)_45%,transparent_70%),linear-gradient(0deg,rgb(7_11_20/0.9)_0%,transparent_35%)]"
         />
-        <div aria-hidden="true" className="rf-spotlight-glow pointer-events-none absolute inset-0" />
 
         <div data-enter className="pointer-events-none relative z-10 flex h-full flex-col p-10 xl:p-14">
-          <Link to="/login" className="pointer-events-auto flex w-fit items-center gap-3 text-white no-underline">
-            <img src="/favicon.svg" alt="" className="size-10" />
-            <span className="text-xl font-bold tracking-tight">RepairFlow</span>
-          </Link>
+          <div className="flex items-center justify-between">
+            <Link to="/login" className="pointer-events-auto flex w-fit items-center gap-3 text-white no-underline">
+              <img src="/favicon.svg" alt="" className="size-10" />
+              <span className="text-xl font-bold tracking-tight">RepairFlow</span>
+            </Link>
+            <MotionToggle paused={paused} onToggle={togglePaused} />
+          </div>
 
           <div className="mt-10 max-w-md">
             <p className="m-0 text-sm font-semibold tracking-[0.14em] text-sky-300 uppercase">Sửa chữa &amp; bảo hành thiết bị</p>
@@ -83,14 +102,17 @@ export function AuthLayout() {
           {screens.sm && !screens.lg && (
             <Scene3DBoundary>
               <Suspense fallback={null}>
-                <RepairScene3D layout="banner" className="absolute inset-0" />
+                <RepairScene3D layout="banner" className="absolute inset-0" paused={paused} />
               </Suspense>
             </Scene3DBoundary>
           )}
-          <Link to="/login" className="relative z-10 flex w-fit items-center gap-2.5 px-5 py-5 text-white no-underline">
-            <img src="/favicon.svg" alt="" className="size-9" />
-            <span className="text-lg font-bold">RepairFlow</span>
-          </Link>
+          <div className="relative z-10 flex items-center justify-between px-5 py-5">
+            <Link to="/login" className="flex w-fit items-center gap-2.5 text-white no-underline">
+              <img src="/favicon.svg" alt="" className="size-9" />
+              <span className="text-lg font-bold">RepairFlow</span>
+            </Link>
+            {screens.sm && !screens.lg && <MotionToggle paused={paused} onToggle={togglePaused} />}
+          </div>
         </div>
         {/* Desktop: thanh trên cùng – lối vào tra cứu bảo hành cho khách không có tài khoản */}
         <div className="hidden items-center justify-end gap-3 px-10 pt-8 lg:flex">
@@ -100,8 +122,7 @@ export function AuthLayout() {
           </Link>
         </div>
         <div className="flex flex-1 items-center justify-center bg-[radial-gradient(rgb(15_23_42/0.06)_1px,transparent_1px)] [background-size:20px_20px] px-5 py-10 sm:px-10">
-          <div ref={cardRef} className="rf-beam-wrap relative w-full max-w-[440px]">
-            <div aria-hidden="true" className="rf-beam-halo pointer-events-none absolute -inset-10" />
+          <div className="relative w-full max-w-[440px]">
             <div data-enter className="rf-beam w-full rounded-2xl border border-border bg-surface p-6 shadow-[0_1px_2px_rgb(15_23_42/0.04),0_12px_32px_-12px_rgb(15_23_42/0.14)] sm:p-9">
               <Outlet />
             </div>

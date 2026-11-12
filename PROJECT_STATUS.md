@@ -231,6 +231,12 @@
 - [x] **Trang đăng nhập/công khai**: giữ 3D, form trong thẻ, thanh tra cứu bảo hành, chân trang
 - [x] Kiểm tra: AvatarIT (4 test: tải/xem/xóa, file HTML giả ảnh bị chặn, > 2 MB bị chặn, quyền xem); trình duyệt: tải ảnh 900×600 PNG → lưu WebP 4,9 KB, hiện ở 3 nơi, xóa ảnh → về chữ cái đầu; dashboard ADMIN/STAFF/CUSTOMER ở 1440px
 
+## Anh thợ 3D trên trang đăng nhập (2026-11-13)
+
+- [x] Nhân vật anh thợ sửa chữa 3D dựng thủ tục, vặn tua vít vào điện thoại (tia lửa), thở, gật đầu, chớp mắt; bố cục lại cảnh (máy bên trái, anh thợ bên phải)
+- [x] Bỏ hiệu ứng theo chuột (đèn rọi, viền sáng theo con trỏ, nghiêng 3D); giữ viền sáng chạy quanh thẻ form
+- [x] Luôn chuyển động + nút tạm dừng/tiếp tục (aria-pressed, ghi nhớ) – kiểm tra trên trình duyệt: hai ảnh chụp cách 1,5 giây giống hệt khi tạm dừng, khác nhau khi chạy; máy đang bật giảm chuyển động vẫn thấy anh thợ cử động
+
 ## Lộ trình theo mốc
 
 1. ✅ Phân tích nghiệp vụ + ERD + UI/UX
