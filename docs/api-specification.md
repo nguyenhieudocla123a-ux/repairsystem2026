@@ -243,6 +243,8 @@ CUSTOMER nhận cùng DTO nhưng `deviceCondition`/thông tin nội bộ vẫn h
 
 ## 8. Quotations
 
+**Đã hiện thực (Mốc 6).** Ghi chú: chỉ lập báo giá khi phiếu ở `INSPECTING`, `REPAIRING` hoặc `REJECTED` (các trạng thái có cạnh tới `WAITING_CONFIRMATION`); mỗi phiếu tối đa 1 bản nháp; gửi báo giá mới → bản `SENT`/`REJECTED` cũ thành `SUPERSEDED`; `validUntil` đã qua → duyệt bị `409`; dòng `PART` bỏ trống `unitPrice` → lấy giá bán hiện tại; nhân viên duyệt/từ chối thay khách bắt buộc `note`.
+
 | Method | Path | Role | Mô tả |
 |---|---|---|---|
 | GET | `/repair-orders/{id}/quotations` | A S T¹ C² | Mọi phiên bản (C không thấy DRAFT) |
@@ -274,6 +276,8 @@ CUSTOMER nhận cùng DTO nhưng `deviceCondition`/thông tin nội bộ vẫn h
 ```
 
 ## 9. Inventory
+
+**Đã hiện thực (Mốc 6).** Bổ sung `GET /parts/categories`. Xuất/hoàn chỉ khi phiếu `APPROVED`/`REPAIRING`/`WAITING_FOR_PARTS`. Hủy phiếu hoặc trả máy không sửa khi còn linh kiện đã xuất → `409`. `POST /repair-orders/{id}/deliver`: `finalAmount` bỏ trống → tổng báo giá đã duyệt (hoặc 0 khi trả máy không sửa); `paymentMethod` bắt buộc khi số tiền > 0; `warrantyMonths` 0–24; trả `RepairOrderDetailResponse` có `warrantyId`, `warrantyCode`. `RepairOrderDetailResponse` có thêm `canQuote`, `canDeliver`, `canUseParts`, `approvedQuotationTotal`.
 
 | Method | Path | Role | Mô tả |
 |---|---|---|---|

@@ -2,7 +2,7 @@
 
 Hệ thống quản lý sửa chữa & bảo hành thiết bị điện tử cho trung tâm sửa chữa: tiếp nhận → kiểm tra → báo giá → sửa chữa → bàn giao → bảo hành, với 4 vai trò ADMIN / STAFF / TECHNICIAN / CUSTOMER.
 
-> 🚧 Đang phát triển – Mốc 5/8 hoàn thành (đăng nhập & phân quyền, khách hàng, thiết bị, tiếp nhận & quy trình phiếu sửa chữa). Xem tiến độ tại [PROJECT_STATUS.md](PROJECT_STATUS.md).
+> 🚧 Đang phát triển – Mốc 6/8 hoàn thành (… + báo giá, kho linh kiện, bàn giao & tạo bảo hành). Xem tiến độ tại [PROJECT_STATUS.md](PROJECT_STATUS.md).
 
 ## Chạy cục bộ
 
@@ -79,6 +79,7 @@ Tài khoản đã tồn tại sẽ không bị ghi đè: đổi `DEMO_USER_PASSW
 | [docs/api-specification.md](docs/api-specification.md) | Hợp đồng API Frontend ↔ Backend |
 | [TECHNICAL_DECISIONS.md](TECHNICAL_DECISIONS.md) | Các quyết định kỹ thuật và lý do |
 | [PROJECT_STATUS.md](PROJECT_STATUS.md) | Đã làm / chưa làm |
+| `graphify-out/` (cục bộ, không commit) | Knowledge graph của repo – dựng/cập nhật bằng `/graphify` hoặc `graphify update .`; mở `graphify-out/graph.html` để xem |
 
 ## Cấu trúc repo
 

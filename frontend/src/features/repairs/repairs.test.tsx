@@ -34,6 +34,12 @@ const baseOrder: RepairOrderDetail = {
   canEditReception: false,
   canAssign: false,
   canDiagnose: false,
+  canQuote: false,
+  canDeliver: false,
+  canUseParts: false,
+  approvedQuotationTotal: null,
+  warrantyId: null,
+  warrantyCode: null,
   version: 3,
 }
 

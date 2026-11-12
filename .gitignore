@@ -26,3 +26,6 @@ frontend/.vite/
 
 # Cấu hình công cụ cục bộ (Claude preview)
 .claude/
+
+# Knowledge graph (graphify) – dựng lại bằng /graphify --update
+graphify-out/

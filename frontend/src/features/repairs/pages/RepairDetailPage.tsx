@@ -1,5 +1,5 @@
-import { EditOutlined, UserSwitchOutlined } from '@ant-design/icons'
-import { Alert, App, Button, Card, DatePicker, Descriptions, Form, Input, Modal, Select, Skeleton, Tabs } from 'antd'
+import { CarryOutOutlined, EditOutlined, UserSwitchOutlined } from '@ant-design/icons'
+import { Alert, App, Button, Card, DatePicker, Descriptions, Form, Input, Modal, Select, Skeleton, Space, Tabs } from 'antd'
 import dayjs from 'dayjs'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
@@ -16,6 +16,11 @@ import { RepairProgress } from '../components/RepairProgress'
 import { RepairPriorityTag, RepairStatusTag } from '../components/RepairStatusTag'
 import { RepairTimeline } from '../components/RepairTimeline'
 import { TransitionActions } from '../components/TransitionActions'
+import { DeliverModal } from '../components/DeliverModal'
+import { QuotationsTab } from '@/features/quotations/components/QuotationsTab'
+import { PartsUsageTab } from '@/features/inventory/components/PartsUsageTab'
+import { MoneyText } from '@/components/MoneyText'
+import { PAYMENT_METHOD_LABELS } from '../constants/status'
 import { REPAIR_PRIORITY_CONFIG } from '../constants/status'
 import { repairsApi, type RepairOrderDetail } from '../repairsApi'
 
@@ -25,11 +30,15 @@ function nextStepHint(o: RepairOrderDetail): string | null {
     case 'RECEIVED':
       return o.technician ? `Chờ ${o.technician.fullName} bắt đầu kiểm tra.` : 'Phiếu chưa được phân công kỹ thuật viên.'
     case 'INSPECTING':
-      return 'Sau khi chẩn đoán, nhân viên tạo báo giá gửi khách (chức năng báo giá có ở Mốc 6).'
+      return 'Sau khi KTV chẩn đoán, nhân viên lập báo giá ở tab "Báo giá" và gửi cho khách.'
     case 'WAITING_CONFIRMATION':
-      return 'Đang chờ khách xác nhận báo giá.'
+      return 'Đang chờ khách xác nhận báo giá (khách bấm trên web, hoặc nhân viên xác nhận thay khi khách gọi điện).'
+    case 'APPROVED':
+      return 'Khách đã đồng ý – KTV xuất linh kiện ở tab "Linh kiện" và bắt đầu sửa.'
+    case 'REJECTED':
+      return 'Khách từ chối báo giá – lập báo giá mới hoặc bàn giao trả máy không sửa.'
     case 'COMPLETED':
-      return 'Đã sửa xong – chờ bàn giao cho khách (chức năng bàn giao có ở Mốc 6).'
+      return 'Đã sửa xong – nhân viên bàn giao máy và thu tiền.'
     default:
       return null
   }
@@ -181,7 +190,7 @@ export function RepairDetailPage() {
   const role = useAppSelector((s) => s.auth.user!.role)
   const isCustomer = role === 'CUSTOMER'
   const [order, setOrder] = useState<RepairOrderDetail>()
-  const [modal, setModal] = useState<'edit' | 'assign' | null>(null)
+  const [modal, setModal] = useState<'edit' | 'assign' | 'deliver' | null>(null)
   const loaded = useAsyncData(() => repairsApi.get(id).then((o) => (setOrder(o), o)), [id])
 
   if (loaded.error) return <ErrorState error={loaded.error} onRetry={loaded.reload} />
@@ -205,13 +214,36 @@ export function RepairDetailPage() {
           </span>
         }
         description={`${order.device.name} · Tiếp nhận ${formatDateTime(order.receivedAt)}`}
-        extra={<TransitionActions order={order} asCustomer={isCustomer} onChanged={setOrder} />}
+        extra={
+          <Space wrap>
+            <TransitionActions order={order} asCustomer={isCustomer} onChanged={setOrder} />
+            {order.canDeliver && (
+              <Button type="primary" icon={<CarryOutOutlined />} onClick={() => setModal('deliver')}>
+                {order.status === 'COMPLETED' ? 'Bàn giao & thu tiền' : 'Trả máy cho khách'}
+              </Button>
+            )}
+          </Space>
+        }
       />
 
       <Card className="mb-4">
         <RepairProgress status={order.status} />
         {hint && <Alert type="info" showIcon title={hint} className="mt-5" />}
         {order.status === 'CANCELLED' && <Alert type="error" showIcon title={`Phiếu đã hủy: ${order.cancelReason}`} className="mt-5" />}
+        {order.status === 'DELIVERED' && (
+          <Alert
+            type="success"
+            showIcon
+            className="mt-5"
+            title={
+              <span>
+                Đã bàn giao {formatDateTime(order.deliveredAt)} · Thu <MoneyText value={order.finalAmount} className="font-semibold" />
+                {order.paymentMethod && ` (${PAYMENT_METHOD_LABELS[order.paymentMethod]})`}
+                {order.warrantyCode && ` · Bảo hành ${order.warrantyCode}`}
+              </span>
+            }
+          />
+        )}
       </Card>
 
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
@@ -242,6 +274,18 @@ export function RepairDetailPage() {
                   </div>
                 ),
               },
+              {
+                key: 'quotations',
+                label: 'Báo giá',
+                children: (
+                  <QuotationsTab
+                    order={order}
+                    viewer={isCustomer ? 'customer' : role === 'TECHNICIAN' ? 'readonly' : 'staff'}
+                    onOrderChanged={() => repairsApi.get(order.id).then(setOrder)}
+                  />
+                ),
+              },
+              ...(!isCustomer ? [{ key: 'parts', label: 'Linh kiện', children: <PartsUsageTab key={order.version} order={order} /> }] : []),
               { key: 'history', label: 'Lịch sử', children: <RepairTimeline repairId={order.id} reloadKey={order.version} showActor={!isCustomer} /> },
             ]}
           />
@@ -275,6 +319,7 @@ export function RepairDetailPage() {
 
       {modal === 'edit' && <EditReceptionModal order={order} onClose={() => setModal(null)} onSaved={updated} />}
       {modal === 'assign' && <AssignModal order={order} onClose={() => setModal(null)} onSaved={updated} />}
+      {modal === 'deliver' && <DeliverModal order={order} onClose={() => setModal(null)} onDelivered={updated} />}
     </>
   )
 }

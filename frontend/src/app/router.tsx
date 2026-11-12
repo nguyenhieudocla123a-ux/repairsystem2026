@@ -18,6 +18,8 @@ import { RepairDetailPage } from '@/features/repairs/pages/RepairDetailPage'
 import { RepairRequestsPage } from '@/features/repairs/pages/RepairRequestsPage'
 import { RepairsPage } from '@/features/repairs/pages/RepairsPage'
 import { TasksPage } from '@/features/repairs/pages/TasksPage'
+import { InventoryPage } from '@/features/inventory/pages/InventoryPage'
+import { MyQuotationsPage, QuotationsPage } from '@/features/quotations/pages/QuotationsPages'
 import { AppLayout, type RouteHandle } from '@/layouts/AppLayout'
 import { AuthLayout } from '@/layouts/AuthLayout'
 import { ComingSoonPage } from '@/pages/ComingSoonPage'
@@ -41,6 +43,9 @@ const IMPLEMENTED: Record<string, ReactNode> = {
   '/tasks': <TasksPage />,
   '/my/devices': <MyDevicesPage />,
   '/my/repairs': <MyRepairsPage />,
+  '/inventory': <InventoryPage />,
+  '/quotations': <QuotationsPage />,
+  '/my/quotations': <MyQuotationsPage />,
 }
 
 /** Trang chi tiết lồng dưới trang danh sách → breadcrumb tự thành "Khách hàng / Chi tiết". */

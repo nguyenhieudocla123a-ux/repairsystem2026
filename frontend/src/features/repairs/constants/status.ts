@@ -1,5 +1,5 @@
 import type { StatusConfig } from '@/components/StatusTag'
-import type { RepairPriority, RepairStatus } from '@/types/enums'
+import type { PaymentMethod, QuotationStatus, RepairPriority, RepairStatus } from '@/types/enums'
 import type { RepairRequestStatus } from '../repairsApi'
 
 /** Nguồn duy nhất cho nhãn + màu trạng thái phiếu (docs/ui-ux-design.md §1.3). */
@@ -28,4 +28,18 @@ export const REQUEST_STATUS_CONFIG: StatusConfig<RepairRequestStatus> = {
   CONVERTED: { label: 'Đã tạo phiếu', color: 'green' },
   REJECTED: { label: 'Đã từ chối', color: 'red' },
   CANCELLED: { label: 'Khách đã hủy', color: 'default' },
+}
+
+export const QUOTATION_STATUS_CONFIG: StatusConfig<QuotationStatus> = {
+  DRAFT: { label: 'Nháp', color: 'default' },
+  SENT: { label: 'Chờ khách xác nhận', color: 'gold' },
+  APPROVED: { label: 'Khách đồng ý', color: 'green' },
+  REJECTED: { label: 'Khách từ chối', color: 'red' },
+  SUPERSEDED: { label: 'Đã thay thế', color: 'default' },
+}
+
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  CASH: 'Tiền mặt',
+  BANK_TRANSFER: 'Chuyển khoản',
+  CARD: 'Thẻ',
 }

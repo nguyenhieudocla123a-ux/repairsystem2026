@@ -19,6 +19,14 @@ Object.defineProperty(window, 'matchMedia', {
   }),
 })
 
+// jsdom không có ResizeObserver – AntD Table (dòng tổng, cột cố định) cần nó
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObserver
+
 // AntD dùng getComputedStyle cho scrollbar
 const originalGetComputedStyle = window.getComputedStyle
 window.getComputedStyle = (elt: Element, pseudo?: string | null) => originalGetComputedStyle(elt, pseudo ?? undefined)

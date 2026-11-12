@@ -56,6 +56,23 @@ export interface RepairOrderDetail {
   canEditReception: boolean
   canAssign: boolean
   canDiagnose: boolean
+  /** Lập/gửi báo giá, bàn giao, xuất/hoàn linh kiện – Backend tính theo vai trò & trạng thái */
+  canQuote: boolean
+  canDeliver: boolean
+  canUseParts: boolean
+  /** Tổng báo giá đã duyệt mới nhất – số tiền gợi ý khi bàn giao */
+  approvedQuotationTotal: number | null
+  warrantyId: number | null
+  warrantyCode: string | null
+  version: number
+}
+
+export interface DeliverRequest {
+  finalAmount?: number
+  paymentMethod?: PaymentMethod
+  warrantyMonths?: number
+  warrantyTerms?: string
+  note?: string
   version: number
 }
 
@@ -120,6 +137,7 @@ export const repairsApi = {
     http.patch<RepairOrderDetail>(`/repair-orders/${id}/assign`, { technicianId }).then((r) => r.data),
   diagnosis: (id: number, body: { diagnosis?: string; solution?: string }) =>
     http.patch<RepairOrderDetail>(`/repair-orders/${id}/diagnosis`, body).then((r) => r.data),
+  deliver: (id: number, body: DeliverRequest) => http.post<RepairOrderDetail>(`/repair-orders/${id}/deliver`, body).then((r) => r.data),
   transition: (id: number, body: { toStatus: RepairStatus; note?: string; version: number }) =>
     http.post<RepairOrderDetail>(`/repair-orders/${id}/transitions`, body).then((r) => r.data),
 

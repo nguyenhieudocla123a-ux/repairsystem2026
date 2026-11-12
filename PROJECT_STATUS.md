@@ -1,6 +1,6 @@
 # PROJECT STATUS – RepairFlow
 
-> Cập nhật: 2026-11-12 (Mốc 5) · Ký hiệu: ✅ xong & đã kiểm tra · 🟡 xong nhưng chưa kiểm thử · ⏳ đang làm · ⬜ chưa làm
+> Cập nhật: 2026-11-12 (Mốc 6) · Ký hiệu: ✅ xong & đã kiểm tra · 🟡 xong nhưng chưa kiểm thử · ⏳ đang làm · ⬜ chưa làm
 
 ## Môi trường máy dev (đã kiểm tra 2026-11-12)
 
@@ -28,11 +28,11 @@
 | 8 | Frontend Layout & Auth | ✅ | Đăng nhập/đăng ký/quên & đặt lại mật khẩu, hồ sơ, quản lý user – nối API thật |
 | 9 | FE–BE Integration | ⏳ | Auth, Users, Khách hàng, Thiết bị, Phiếu sửa chữa nối API thật; còn báo giá, kho, bảo hành, dashboard |
 | 10 | Repair Management | ✅ | Máy trạng thái + tiếp nhận + phân công + chẩn đoán (bàn giao ở Mốc 6) |
-| 11 | Quotation & Inventory | ⬜ | Entity + schema đã có; `Part.decreaseStock` có unit test |
+| 11 | Quotation & Inventory | ✅ | Báo giá, kho, bàn giao – Backend + Frontend |
 | 12 | Warranty | ⬜ | Entity + schema đã có |
 | 13 | Dashboard & Reports | ⬜ | |
 | 14 | Redis & WebSocket | ⏳ | Redis: blacklist token + rate limit đăng nhập ✅; chưa có cache dashboard, WebSocket |
-| 15 | Unit & Integration Test | ⏳ | Backend: 49 unit + 43 integration · Frontend: 35 test |
+| 15 | Unit & Integration Test | ⏳ | Backend: 49 unit + 55 integration · Frontend: 39 test |
 | 16 | Docker Compose & Deployment | ⏳ | Compose có PostgreSQL + Redis; chưa có container backend/frontend |
 | 17 | Final Review & Documentation | ⬜ | |
 
@@ -143,17 +143,33 @@
 
 **Chưa làm trong mốc này (theo kế hoạch):** báo giá, xuất kho, bàn giao/thanh toán (Mốc 6); bảo hành, thông báo, dashboard (Mốc 7). Trang chi tiết phiếu hiển thị gợi ý bước tiếp theo, ghi rõ chức năng nào có ở mốc sau.
 
-## Mốc 6 – ĐANG LÀM (cập nhật 2026-11-12)
+## Mốc 6 – Checklist hoàn thành (2026-11-12)
 
-**Backend – xong & đã kiểm thử (`mvnw verify`: 49 unit + 55 integration ✅):**
-- Kho: CRUD linh kiện, nhập kho, điều chỉnh kiểm kê (ADMIN), xuất/hoàn linh kiện cho phiếu với khóa bi quan `SELECT … FOR UPDATE`, sổ kho, ẩn giá vốn với KTV
-- Báo giá: nháp → gửi (phiếu → WAITING_CONFIRMATION) → khách/nhân viên thay khách duyệt hoặc từ chối; báo giá cũ → SUPERSEDED; tổng tiền tính ở Backend
-- Bàn giao: COMPLETED/REJECTED → DELIVERED, số tiền mặc định từ báo giá đã duyệt, tự tạo bảo hành
-- Hủy phiếu / trả máy bị chặn khi còn linh kiện chưa hoàn kho
-- Test đồng thời: 2 KTV cùng xuất chiếc linh kiện cuối → đúng 1 thành công, tồn = 0
-- Lỗi tìm thấy nhờ test: sổ kho được INSERT trước khi gắn phiếu → CHECK constraint ở DB chặn (đã sửa)
+**Backend**
+- [x] Kho: CRUD linh kiện, nhập kho, điều chỉnh kiểm kê (ADMIN), sổ kho; xuất/hoàn cho phiếu với khóa bi quan `SELECT … FOR UPDATE`; KTV không thấy giá vốn
+- [x] Báo giá: nháp → gửi (phiếu → WAITING_CONFIRMATION) → khách / nhân viên thay khách duyệt hoặc từ chối; bản cũ → SUPERSEDED; tổng tiền tính ở Backend
+- [x] Bàn giao: COMPLETED/REJECTED → DELIVERED, số tiền mặc định từ báo giá đã duyệt, phương thức thanh toán, tự tạo bảo hành
+- [x] Hủy phiếu / trả máy không sửa bị chặn khi còn linh kiện chưa hoàn kho
 
-**Chưa làm:** Frontend Mốc 6 (trang kho & lịch sử kho, tab báo giá / linh kiện / bàn giao trong chi tiết phiếu, báo giá chờ duyệt của khách), kiểm thử trình duyệt, cập nhật api-specification & TECHNICAL_DECISIONS cho Mốc 6.
+**Frontend**
+- [x] Trang Kho (linh kiện, lọc tồn thấp, nhập kho, kiểm kê, ngừng kinh doanh, sổ kho)
+- [x] Chi tiết phiếu: tab Báo giá (trình soạn, gửi, duyệt/từ chối theo vai trò), tab Linh kiện (xuất/hoàn), nút Bàn giao & thu tiền
+- [x] Trang Báo giá (nhân viên) và Báo giá của tôi (khách)
+
+**Đã kiểm thử thật:**
+
+| Kiểm tra | Kết quả |
+|---|---|
+| `mvnw verify` – 49 unit + 55 integration (QuotationInventoryIT: luồng đầy đủ tới bảo hành, **2 KTV xuất đồng thời linh kiện cuối → đúng 1 thành công, tồn = 0**, xuất vượt tồn/trước khi duyệt, KTV khác bị chặn, hoàn kho, kiểm kê, giảm giá vượt tổng, duyệt thay khách phải ghi chú, báo giá mới thay thế bản cũ, trả máy không sửa) | ✅ 104/104 |
+| Frontend `tsc`, `oxlint`, `vitest` 39 test, `vite build` | ✅ |
+| Trình duyệt end-to-end (phiếu `RO-2026-000001`): nhân viên tạo linh kiện + nhập 3 → lập báo giá 2.700.000₫ → gửi → khách đồng ý trên web → KTV xuất 1 màn hình, sửa, hoàn thành → nhân viên bàn giao (tự điền 2.700.000₫, tiền mặt) → bảo hành `WR-2026-000001`; sổ kho +3 / −1, tồn 2 | ✅ |
+| graphify: knowledge graph 2.003 node / 7.274 cạnh / 85 community; truy vấn xác nhận mọi đổi trạng thái phiếu chỉ qua `changeStatus` (5 nơi gọi) | ✅ |
+
+**Lỗi tìm thấy & đã sửa:** dòng sổ kho được INSERT trước khi gắn phiếu → CHECK constraint ở DB chặn (TD-49); jsdom thiếu `ResizeObserver` cho bảng có dòng tổng (polyfill trong test setup).
+
+**Dữ liệu tạo khi test giao diện (DB dev):** linh kiện `LCD-IP13` (tồn 2), báo giá v1 của `RO-2026-000001` (đã duyệt), phiếu đã bàn giao, bảo hành `WR-2026-000001`.
+
+**graphify – lưu ý:** cảnh báo sức khỏe 763 cạnh trỏ tới symbol ngoài repo (thư viện) + 608 cạnh trùng cặp bị gộp; không ảnh hưởng truy vấn trong code dự án.
 
 ## Lộ trình theo mốc
 
@@ -162,7 +178,7 @@
 3. ✅ Khởi tạo Frontend + Design System + Dashboard Layout
 4. ✅ Authentication + JWT + tích hợp đăng nhập + quản lý người dùng
 5. ✅ Customers, Devices, Repair Management
-6. ⬜ Quotation + Inventory
+6. ✅ Quotation + Inventory + Bàn giao
 7. ⬜ Warranty + Notification (WebSocket) + Dashboard
 8. ⬜ Testing + Docker hoàn chỉnh + tài liệu
 
