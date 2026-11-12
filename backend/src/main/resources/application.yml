@@ -32,6 +32,9 @@ spring:
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
       timeout: 2s
+  data.web.pageable:
+    max-page-size: 100
+    default-page-size: 20
   jackson:
     serialization:
       write-dates-as-timestamps: false
@@ -65,3 +68,15 @@ springdoc:
 app:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  auth:
+    jwt-secret: ${JWT_SECRET}                    # base64, >= 32 byte – app dừng khởi động nếu thiếu/yếu
+    access-token-ttl: 15m
+    refresh-token-ttl: 7d
+    cookie-secure: ${AUTH_COOKIE_SECURE:true}    # trình duyệt chấp nhận cookie Secure trên http://localhost
+    login-max-attempts: 5
+    login-lock-duration: 15m
+    password-reset-ttl: 30m
+    frontend-url: ${FRONTEND_URL:http://localhost:5173}
+    log-reset-links: false                       # chưa có SMTP; chỉ bật ở dev
+  demo:
+    password: ${DEMO_USER_PASSWORD:}             # dev: mật khẩu cho 4 tài khoản demo (để trống = không tạo)

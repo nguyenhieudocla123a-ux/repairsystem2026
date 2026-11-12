@@ -61,12 +61,10 @@
     outline: 2px solid var(--rf-primary);
     outline-offset: 2px;
   }
-  @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-      animation-duration: 0.01ms !important;
-      transition-duration: 0.01ms !important;
-    }
-  }
+  /*
+   * KHÔNG ép animation-duration toàn cục khi prefers-reduced-motion (đã từng làm và gây lỗi: animation của AntD
+   * kết thúc trước khi popup được căn vị trí → mọi dropdown/select/popover nằm ở -1000vh, không bấm được).
+   * Giảm chuyển động được xử lý đúng cách: AntD qua token `motion: false` (providers.tsx),
+   * component tự dựng dùng biến thể `motion-safe:` của Tailwind.
+   */
 }

@@ -6,6 +6,14 @@ spring:
     redis:
       password:
 
+app:
+  scheduling:
+    enabled: false
+  auth:
+    # Secret chỉ dùng cho test (không phải bí mật thật)
+    jwt-secret: dGVzdC1vbmx5LXNlY3JldC1rZXktZm9yLXJlcGFpcmZsb3ctaW50ZWdyYXRpb24tdGVzdHM=
+    cookie-secure: false
+
 logging:
   level:
     com.repairflow: INFO

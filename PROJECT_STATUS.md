@@ -1,6 +1,6 @@
 # PROJECT STATUS – RepairFlow
 
-> Cập nhật: 2026-11-12 · Ký hiệu: ✅ xong & đã kiểm tra · 🟡 xong nhưng chưa kiểm thử · ⏳ đang làm · ⬜ chưa làm
+> Cập nhật: 2026-11-12 (Mốc 4) · Ký hiệu: ✅ xong & đã kiểm tra · 🟡 xong nhưng chưa kiểm thử · ⏳ đang làm · ⬜ chưa làm
 
 ## Môi trường máy dev (đã kiểm tra 2026-11-12)
 
@@ -24,15 +24,15 @@
 | 4 | Project Initialization (backend) | ✅ | Spring Boot 3.5.16, Java 17, cấu trúc modular monolith |
 | 5 | PostgreSQL & Flyway | ✅ | V1–V6, 16 bảng, 16 entity (`ddl-auto=validate` pass) |
 | 6 | Backend Core APIs | ⬜ | Đã có nền: GlobalExceptionHandler, ApiErrorResponse, PageResponse, CodeGenerator |
-| 7 | Spring Security & JWT | ⏳ | Đã có: stateless, CORS, 401/403 JSON, BCrypt bean. Chưa có: JWT filter, /auth |
-| 8 | Frontend Layout & Auth | ⏳ | Layout, design system, trang auth (UI + validation) xong; chờ API /auth ở Mốc 4 |
-| 9 | FE–BE Integration | ⬜ | |
+| 7 | Spring Security & JWT | ✅ | JWT + refresh rotation, blacklist, rate limit, RBAC, quản lý user |
+| 8 | Frontend Layout & Auth | ✅ | Đăng nhập/đăng ký/quên & đặt lại mật khẩu, hồ sơ, quản lý user – nối API thật |
+| 9 | FE–BE Integration | ⏳ | Auth + Users đã nối API thật end-to-end; còn các module nghiệp vụ |
 | 10 | Repair Management | ⬜ | Entity + schema đã có |
 | 11 | Quotation & Inventory | ⬜ | Entity + schema đã có; `Part.decreaseStock` có unit test |
 | 12 | Warranty | ⬜ | Entity + schema đã có |
 | 13 | Dashboard & Reports | ⬜ | |
-| 14 | Redis & WebSocket | ⏳ | Redis kết nối & health OK; chưa có cache/blacklist/WebSocket |
-| 15 | Unit & Integration Test | ⏳ | Backend: 5 unit + 9 integration · Frontend: 23 test |
+| 14 | Redis & WebSocket | ⏳ | Redis: blacklist token + rate limit đăng nhập ✅; chưa có cache dashboard, WebSocket |
+| 15 | Unit & Integration Test | ⏳ | Backend: 16 unit + 27 integration · Frontend: 29 test |
 | 16 | Docker Compose & Deployment | ⏳ | Compose có PostgreSQL + Redis; chưa có container backend/frontend |
 | 17 | Final Review & Documentation | ⬜ | |
 
@@ -83,12 +83,41 @@
 
 **Chưa làm được / chưa kiểm tra:** đăng nhập thành công end-to-end (cần API /auth – Mốc 4).
 
+## Mốc 4 – Checklist hoàn thành (2026-11-12)
+
+**Backend**
+- [x] `JwtService` (HS256, jti, secret base64 ≥ 32 byte – thiếu/yếu thì app không khởi động), `JwtAuthenticationFilter`, 401 `TOKEN_EXPIRED` vs `UNAUTHORIZED`
+- [x] Refresh token: cookie HttpOnly/Secure/SameSite=Strict/Path=/api/v1/auth, lưu SHA-256, xoay vòng + phát hiện dùng lại (thu hồi cả phiên), khóa dòng khi xoay vòng
+- [x] Redis: blacklist access token khi logout, rate limit 5 lần sai / 15 phút (fail-open có log)
+- [x] `/auth`: login, register (tạo user + hồ sơ khách), refresh, logout, me, cập nhật hồ sơ, đổi mật khẩu, quên/đặt lại mật khẩu
+- [x] `/users` (ADMIN): tìm kiếm/lọc/phân trang/sort whitelist, tạo, sửa, khóa/mở khóa, đặt lại mật khẩu; `/users/technicians` (ADMIN, STAFF)
+- [x] Audit log cho thao tác quản trị; job dọn token hết hạn; validation `@StrongPassword`, `@VietnamesePhone`
+- [x] `DemoDataSeeder` (dev) – 4 tài khoản demo, mật khẩu từ `.env`
+
+**Frontend**
+- [x] Đăng nhập / đăng ký / khôi phục phiên khi F5 / đăng xuất chạy với API thật; trang Đặt lại mật khẩu, Hồ sơ cá nhân (sửa thông tin, đổi mật khẩu)
+- [x] Trang Người dùng & Nhân viên/KTV: phân trang/lọc/sắp xếp phía server, tìm kiếm debounce, modal tạo/sửa, khóa/mở khóa, đặt lại mật khẩu
+- [x] Sau đăng nhập chỉ quay lại trang cũ nếu vai trò được phép
+
+**Đã kiểm thử thật:**
+
+| Kiểm tra | Kết quả |
+|---|---|
+| `mvnw verify` – 16 unit (JwtService, RefreshTokenService/Mockito…) + 27 integration (AuthFlowIT: đăng ký, login sai/hoa thường/rate limit, refresh rotation + reuse, logout blacklist, token hết hạn, đổi & đặt lại mật khẩu, RBAC 403, khóa tài khoản, sort whitelist) | ✅ 43/43 |
+| Frontend `tsc`, `oxlint`, `vite build`, `vitest` (29 test, gồm khôi phục phiên & canAccessPath) | ✅ |
+| API thật: 4 tài khoản demo đăng nhập đúng vai trò | ✅ |
+| Trình duyệt: ADMIN đăng nhập → quay lại /users; F5 giữ phiên; cookie không đọc được từ JS (HttpOnly); tìm kiếm debounce chỉ 1 request; tạo KTV qua modal (validation + bàn phím); đăng xuất → refresh 401; CUSTOMER → trang 403 cho /users, menu đúng vai trò, trang hồ sơ | ✅ |
+
+**Lỗi tìm thấy & đã sửa trong mốc này:** khôi phục phiên gọi `/me` trước khi lưu token; hash giả BCrypt không hợp lệ (mất tác dụng chống timing attack); repository lồng không được Spring Data quét; **mọi popup AntD hỏng khi bật "giảm chuyển động"** (TD-39); khách hàng bị đưa vào trang 403 sau đăng nhập.
+
+**Dữ liệu kiểm thử còn lại trong DB dev:** 1 tài khoản KTV `ktv.kiemthu@repairflow.local` tạo khi test giao diện (có thể khóa trong trang Người dùng).
+
 ## Lộ trình theo mốc
 
 1. ✅ Phân tích nghiệp vụ + ERD + UI/UX
 2. ✅ Khởi tạo Backend + PostgreSQL + Flyway + Docker Compose cho DB/Redis
 3. ✅ Khởi tạo Frontend + Design System + Dashboard Layout
-4. ⬜ Authentication + JWT + tích hợp đăng nhập
+4. ✅ Authentication + JWT + tích hợp đăng nhập + quản lý người dùng
 5. ⬜ Customers, Devices, Repair Management
 6. ⬜ Quotation + Inventory
 7. ⬜ Warranty + Notification (WebSocket) + Dashboard
@@ -100,4 +129,5 @@ Hiện tại: **không có**.
 
 ## Vấn đề mở
 
-- Chưa có API nghiệp vụ nào – mọi endpoint `/api/v1/**` hiện trả 401 (đúng thiết kế cho tới Mốc 4).
+- Production chưa có cách tạo ADMIN đầu tiên (dev dùng DemoDataSeeder) – làm ở Mốc 8 cùng Docker.
+- Kích hoạt tài khoản cổng khách cho hồ sơ có sẵn (`POST /customers/{id}/account`) làm cùng module Customers ở Mốc 5.

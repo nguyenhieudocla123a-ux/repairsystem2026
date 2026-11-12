@@ -2,7 +2,7 @@
 
 Hệ thống quản lý sửa chữa & bảo hành thiết bị điện tử cho trung tâm sửa chữa: tiếp nhận → kiểm tra → báo giá → sửa chữa → bàn giao → bảo hành, với 4 vai trò ADMIN / STAFF / TECHNICIAN / CUSTOMER.
 
-> 🚧 Đang phát triển – Mốc 3/8 hoàn thành (backend nền tảng + PostgreSQL/Flyway/Redis + frontend design system & layout). Xem tiến độ tại [PROJECT_STATUS.md](PROJECT_STATUS.md).
+> 🚧 Đang phát triển – Mốc 4/8 hoàn thành (nền tảng backend/frontend + đăng nhập JWT, phân quyền, quản lý người dùng). Xem tiến độ tại [PROJECT_STATUS.md](PROJECT_STATUS.md).
 
 ## Chạy cục bộ
 
@@ -41,6 +41,19 @@ npm run dev
 - App: http://localhost:5173 (proxy `/api` → backend 8080)
 - UI kit (chỉ dev): http://localhost:5173/dev/ui-kit
 - Test / build: `npm test`, `npm run build`
+
+### Tài khoản demo (chỉ profile `dev`)
+
+Đặt `DEMO_USER_PASSWORD` trong `.env` (≥ 8 ký tự, có chữ hoa, chữ thường, số) **trước** lần chạy backend đầu tiên. Backend tự tạo 4 tài khoản dùng chung mật khẩu đó:
+
+| Vai trò | Email |
+|---|---|
+| ADMIN | `admin@repairflow.local` |
+| STAFF | `staff@repairflow.local` |
+| TECHNICIAN | `tech@repairflow.local` |
+| CUSTOMER | `customer@repairflow.local` |
+
+Tài khoản đã tồn tại sẽ không bị ghi đè: đổi `DEMO_USER_PASSWORD` sau đó không đổi mật khẩu cũ (dùng "Quên mật khẩu" – ở dev link đặt lại được in ra log backend).
 
 > Nếu JDK mặc định không phải 17, đặt `JAVA_HOME` trỏ tới JDK 17 trước khi chạy `mvnw`.
 

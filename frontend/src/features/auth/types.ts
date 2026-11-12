@@ -1,6 +1,6 @@
 import type { Role, UserStatus } from '@/types/enums'
 
-/** UserResponse – docs/api-specification.md §2 */
+/** UserResponse.java – docs/api-specification.md §2–3 */
 export interface AuthUser {
   id: number
   email: string
@@ -9,6 +9,8 @@ export interface AuthUser {
   role: Role
   status: UserStatus
   customerId: number | null
+  lastLoginAt: string | null
+  createdAt: string
 }
 
 export interface AuthResponse {
@@ -31,6 +33,21 @@ export interface RegisterRequest {
   address?: string
 }
 
+export interface UpdateProfileRequest {
+  fullName: string
+  phone?: string
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string
+  newPassword: string
+}
+
 export interface ForgotPasswordRequest {
   email: string
+}
+
+export interface ResetPasswordRequest {
+  token: string
+  newPassword: string
 }

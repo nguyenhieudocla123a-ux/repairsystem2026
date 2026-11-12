@@ -24,9 +24,14 @@ public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response,
                          AuthenticationException authException) throws IOException {
-        ErrorCode code = ErrorCode.UNAUTHORIZED;
+        // Filter JWT ghi lại lý do (VD token hết hạn) → client phân biệt "cần refresh" với "cần đăng nhập lại"
+        Object reason = request.getAttribute(JwtAuthenticationFilter.AUTH_ERROR_ATTRIBUTE);
+        ErrorCode code = reason instanceof ErrorCode errorCode ? errorCode : ErrorCode.UNAUTHORIZED;
+        String message = code == ErrorCode.TOKEN_EXPIRED
+                ? "Phiên làm việc đã hết hạn"
+                : "Vui lòng đăng nhập";
         ApiErrorResponse body = new ApiErrorResponse(Instant.now(), code.status().value(), code.name(),
-                "Vui lòng đăng nhập", request.getRequestURI(), List.of());
+                message, request.getRequestURI(), List.of());
         response.setStatus(code.status().value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding("UTF-8");

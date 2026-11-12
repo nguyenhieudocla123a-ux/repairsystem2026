@@ -3,8 +3,11 @@ import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-do
 import { FullScreenLoader } from '@/components/FullScreenLoader'
 import { ForgotPasswordPage } from '@/features/auth/pages/ForgotPasswordPage'
 import { LoginPage } from '@/features/auth/pages/LoginPage'
+import { ProfilePage } from '@/features/auth/pages/ProfilePage'
 import { RegisterPage } from '@/features/auth/pages/RegisterPage'
+import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage'
 import { DashboardPage } from '@/features/dashboard/pages/DashboardPage'
+import { STAFF_SCOPE, UsersPage } from '@/features/users/pages/UsersPage'
 import { AppLayout, type RouteHandle } from '@/layouts/AppLayout'
 import { AuthLayout } from '@/layouts/AuthLayout'
 import { ComingSoonPage } from '@/pages/ComingSoonPage'
@@ -15,6 +18,11 @@ import { GuestRoute, ProtectedRoute, RoleGuard } from '@/routes/guards'
 /** Trang đã có nội dung thật; còn lại hiển thị ComingSoonPage. */
 const IMPLEMENTED: Record<string, ReactNode> = {
   '/dashboard': <DashboardPage />,
+  '/profile': <ProfilePage />,
+  '/users': <UsersPage title="Người dùng" description="Tất cả tài khoản trong hệ thống, gồm cả khách hàng." />,
+  '/staff': (
+    <UsersPage title="Nhân viên & KTV" description="Tài khoản nội bộ: quản trị viên, nhân viên tiếp nhận, kỹ thuật viên." scopeRoles={STAFF_SCOPE} />
+  ),
 }
 
 const appChildren: RouteObject[] = APP_ROUTES.map((r) => ({
@@ -50,6 +58,10 @@ export const routes: RouteObject[] = [
       { path: '/register', element: <RegisterPage /> },
       { path: '/forgot-password', element: <ForgotPasswordPage /> },
     ],
+  },
+  {
+    element: <AuthLayout />,
+    children: [{ path: '/reset-password', element: <ResetPasswordPage /> }],
   },
   {
     path: '/',

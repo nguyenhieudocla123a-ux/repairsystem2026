@@ -17,10 +17,11 @@ export interface AuthState {
 
 const initialState: AuthState = { status: 'bootstrapping', user: null, accessToken: null }
 
-export const bootstrapSession = createAsyncThunk('auth/bootstrap', async () => {
+export const bootstrapSession = createAsyncThunk('auth/bootstrap', async (_, { dispatch }) => {
   const { accessToken } = await authApi.refresh()
-  const user = await authApi.me().catch(() => null)
-  if (!user) throw new Error('Không lấy được thông tin người dùng')
+  // Lưu token TRƯỚC khi gọi /me – interceptor lấy token từ store để gắn header Authorization
+  dispatch(accessTokenRefreshed(accessToken))
+  const user = await authApi.me()
   return { accessToken, user }
 })
 
@@ -46,6 +47,15 @@ const authSlice = createSlice({
     accessTokenRefreshed(state, action: PayloadAction<string>) {
       state.accessToken = action.payload
     },
+    /** Nhận phiên mới (VD sau khi đổi mật khẩu, Backend cấp lại token). */
+    credentialsReceived(state, action: PayloadAction<AuthResponse>) {
+      state.status = 'authenticated'
+      state.user = action.payload.user
+      state.accessToken = action.payload.accessToken
+    },
+    userUpdated(state, action: PayloadAction<AuthUser>) {
+      state.user = action.payload
+    },
     sessionExpired(state) {
       state.status = 'anonymous'
       state.user = null
@@ -62,6 +72,7 @@ const authSlice = createSlice({
       .addCase(bootstrapSession.fulfilled, authenticated)
       .addCase(bootstrapSession.rejected, (state) => {
         state.status = 'anonymous'
+        state.accessToken = null
       })
       .addCase(login.fulfilled, authenticated)
       .addCase(register.fulfilled, authenticated)
@@ -73,5 +84,5 @@ const authSlice = createSlice({
   },
 })
 
-export const { accessTokenRefreshed, sessionExpired } = authSlice.actions
+export const { accessTokenRefreshed, credentialsReceived, userUpdated, sessionExpired } = authSlice.actions
 export default authSlice.reducer

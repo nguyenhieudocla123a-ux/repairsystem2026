@@ -61,7 +61,7 @@ Frontend: interceptor chỉ tự refresh khi `401` + `code = TOKEN_EXPIRED`.
 | POST | `/auth/reset-password` | P | Đặt lại bằng token |
 | GET | `/auth/me` | A S T C | Thông tin user hiện tại |
 | PUT | `/auth/me` | A S T C | Cập nhật họ tên, SĐT |
-| PUT | `/auth/me/password` | A S T C | Đổi mật khẩu (thu hồi mọi phiên) |
+| PUT | `/auth/me/password` | A S T C | Đổi mật khẩu → thu hồi mọi phiên khác, trả `AuthResponse` + cookie mới cho thiết bị hiện tại |
 
 ```json
 // POST /auth/login  →  LoginRequest
@@ -79,19 +79,27 @@ Frontend: interceptor chỉ tự refresh khi `401` + `code = TOKEN_EXPIRED`.
 // POST /auth/reset-password
 { "token": "...", "newPassword": "Abc@1234" }
 ```
-Mật khẩu: 8–72 ký tự, có chữ hoa, chữ thường, số.
+Mật khẩu: 8–72 ký tự, có chữ hoa, chữ thường, số (`@StrongPassword` ↔ `passwordSchema` Zod).
+
+**Đã hiện thực (Mốc 4).** Ghi chú hành vi:
+- `login` sai email hoặc sai mật khẩu đều trả cùng `401 INVALID_CREDENTIALS` (không lộ email nào tồn tại); sai 5 lần / 15 phút / email → `429 TOO_MANY_REQUESTS`; tài khoản khóa → `403 ACCOUNT_LOCKED`.
+- `refresh` dùng lại token đã xoay vòng → `401` và thu hồi toàn bộ phiên đó (reuse detection).
+- `logout` luôn `204` (idempotent), xóa cookie (`Max-Age=0`).
+- `UserResponse` có thêm `lastLoginAt`, `createdAt`.
 
 ## 3. Users (quản trị) – `/users` · Role: **A**
 
 | Method | Path | Mô tả |
 |---|---|---|
-| GET | `/users?role=&status=&q=&page=&size=&sort=` | Danh sách |
+| GET | `/users?role=&status=&q=&page=&size=&sort=` | Danh sách. `role` nhận nhiều giá trị (`role=STAFF,TECHNICIAN`); `sort` chỉ cho `createdAt, fullName, email, role, lastLoginAt` (khác → 400) |
 | GET | `/users/{id}` | Chi tiết |
 | POST | `/users` | Tạo tài khoản nội bộ (ADMIN/STAFF/TECHNICIAN) |
 | PUT | `/users/{id}` | Sửa họ tên, SĐT, role |
 | PATCH | `/users/{id}/status` | `{ "status": "LOCKED" }` |
 | POST | `/users/{id}/reset-password` | `{ "newPassword": "..." }` |
 | GET | `/users/technicians` | **A S** – danh sách KTV active + số việc đang làm (cho Select phân công) |
+
+Quy tắc: không tạo `CUSTOMER` qua API này (400); không tự đổi vai trò/tự khóa chính mình (400); không chuyển qua lại giữa tài khoản khách hàng và nội bộ; đổi vai trò / khóa / đặt lại mật khẩu → thu hồi mọi phiên của người đó; mọi thao tác ghi `audit_logs`.
 
 ```json
 // UserResponse

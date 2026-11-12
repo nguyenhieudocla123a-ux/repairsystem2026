@@ -79,3 +79,10 @@ export const ROLE_LABELS: Record<Role, string> = {
 export function routesForRole(role: Role): AppRouteDef[] {
   return APP_ROUTES.filter((r) => r.roles.includes(role))
 }
+
+/** Vai trò có được vào đường dẫn này không (khớp chính xác hoặc trang con, VD /repairs/123). */
+export function canAccessPath(role: Role, path: string): boolean {
+  const pathname = path.split(/[?#]/)[0]
+  const route = APP_ROUTES.find((r) => pathname === r.path || pathname.startsWith(`${r.path}/`))
+  return route ? route.roles.includes(role) : false
+}

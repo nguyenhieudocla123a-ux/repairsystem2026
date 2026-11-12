@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAppDispatch } from '@/app/hooks'
+import { canAccessPath } from '@/routes/appRoutes'
 import { FormField } from '@/components/form/FormField'
 import { getErrorMessage } from '@/utils/errors'
 import { login } from '../authSlice'
@@ -24,9 +25,10 @@ export function LoginPage() {
   const onSubmit = handleSubmit(async (values) => {
     setFormError(null)
     try {
-      await dispatch(login(values)).unwrap()
+      const { user } = await dispatch(login(values)).unwrap()
+      // Chỉ quay lại trang định vào trước đó nếu vai trò vừa đăng nhập được phép xem (tránh vừa vào đã gặp 403)
       const from = (location.state as { from?: string } | null)?.from
-      navigate(from ?? '/dashboard', { replace: true })
+      navigate(from && canAccessPath(user.role, from) ? from : '/dashboard', { replace: true })
     } catch (error) {
       setFormError(getErrorMessage(error))
     }

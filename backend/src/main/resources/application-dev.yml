@@ -8,3 +8,7 @@ management:
   endpoint:
     health:
       show-details: always
+
+app:
+  auth:
+    log-reset-links: true   # dev chưa có SMTP: in link đặt lại mật khẩu ra log

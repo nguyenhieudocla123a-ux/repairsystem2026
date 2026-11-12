@@ -47,7 +47,7 @@ export function StatCard({ label, value, icon, tone = 'primary', hint, loading =
         type="button"
         onClick={onClick}
         aria-busy={loading}
-        className={`${base} focus-ring cursor-pointer transition-colors duration-150 hover:border-primary/40 hover:shadow-overlay`}
+        className={`${base} focus-ring cursor-pointer motion-safe:transition-colors motion-safe:duration-150 hover:border-primary/40 hover:shadow-overlay`}
       >
         {content}
       </button>
