@@ -5,11 +5,12 @@ import { createMemoryRouter, RouterProvider, type RouteObject } from 'react-rout
 import { AppProviders } from '@/app/providers'
 import type { AppStore } from '@/app/store'
 import authReducer, { type AuthState } from '@/features/auth/authSlice'
+import notificationsReducer from '@/features/notifications/notificationsSlice'
 
 export function makeStore(auth?: Partial<AuthState>): AppStore {
   const preloaded: AuthState = { status: 'anonymous', user: null, accessToken: null, ...auth }
   return configureStore({
-    reducer: { auth: authReducer },
+    reducer: { auth: authReducer, notifications: notificationsReducer },
     preloadedState: { auth: preloaded },
   }) as AppStore
 }

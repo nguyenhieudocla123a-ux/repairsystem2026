@@ -17,6 +17,8 @@ import com.repairflow.repair.service.RepairStatusPolicy.Channel;
 import com.repairflow.security.AuthenticatedUser;
 import com.repairflow.user.entity.User;
 import com.repairflow.warranty.entity.Warranty;
+import com.repairflow.warranty.entity.WarrantyClaimStatus;
+import com.repairflow.warranty.repository.WarrantyClaimRepository;
 import com.repairflow.warranty.repository.WarrantyRepository;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
@@ -49,6 +51,7 @@ public class DeliveryService {
     private final CodeGenerator codeGenerator;
     private final EntityManager entityManager;
     private final Clock clock;
+    private final WarrantyClaimRepository warrantyClaimRepository;
 
     @Transactional
     public RepairOrderDetailResponse deliver(Long orderId, DeliverRequest request, AuthenticatedUser actor) {
@@ -81,6 +84,15 @@ public class DeliveryService {
                     LocalDate.now(clock.withZone(SHOP_ZONE)), months, entityManager.getReference(User.class, actor.id()));
             warranty.setTerms(StringUtils.hasText(request.warrantyTerms()) ? request.warrantyTerms().trim() : null);
             warrantyRepository.save(warranty);
+        }
+        if (order.isWarrantyRepair()) {
+            // Phiếu bảo hành đã bàn giao → đóng yêu cầu bảo hành tương ứng
+            warrantyClaimRepository.findByRepairOrderId(orderId)
+                    .filter(c -> c.getStatus() == WarrantyClaimStatus.ACCEPTED)
+                    .ifPresent(c -> {
+                        c.setStatus(WarrantyClaimStatus.RESOLVED);
+                        c.setResolvedAt(clock.instant());
+                    });
         }
         repairOrderRepository.flush();
         return queryService.toDetail(order, actor);

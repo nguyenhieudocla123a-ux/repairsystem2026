@@ -40,6 +40,7 @@ public class SecurityConfig {
             "/swagger-ui.html",
             "/swagger-ui/**",
             "/api/v1/public/**",
+            "/ws/**", // bắt tay WebSocket – xác thực JWT ở frame STOMP CONNECT
     };
 
     private static final String[] PUBLIC_AUTH_POSTS = {

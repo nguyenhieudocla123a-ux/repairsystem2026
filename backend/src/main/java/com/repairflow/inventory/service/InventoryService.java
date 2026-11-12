@@ -5,6 +5,7 @@ import com.repairflow.common.exception.BusinessException;
 import com.repairflow.common.exception.ErrorCode;
 import com.repairflow.common.web.PageRequests;
 import com.repairflow.common.web.PageResponse;
+import com.repairflow.config.CacheConfig;
 import com.repairflow.inventory.dto.InventoryDtos.AdjustRequest;
 import com.repairflow.inventory.dto.InventoryDtos.ImportRequest;
 import com.repairflow.inventory.dto.InventoryDtos.PartMovementRequest;
@@ -16,6 +17,7 @@ import com.repairflow.inventory.entity.InventoryTransactionType;
 import com.repairflow.inventory.entity.Part;
 import com.repairflow.inventory.repository.InventoryTransactionRepository;
 import com.repairflow.inventory.repository.PartRepository;
+import com.repairflow.notification.event.DomainEvents.LowStock;
 import com.repairflow.repair.entity.RepairOrder;
 import com.repairflow.repair.entity.RepairStatus;
 import com.repairflow.repair.service.RepairAccessGuard;
@@ -34,6 +36,8 @@ import java.util.Map;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -61,8 +65,10 @@ public class InventoryService {
     private final RepairAccessGuard repairAccessGuard;
     private final AuditService auditService;
     private final EntityManager entityManager;
+    private final ApplicationEventPublisher events;
 
     @Transactional
+    @CacheEvict(cacheNames = CacheConfig.PART_OPTIONS, allEntries = true)
     public PartResponse importStock(Long partId, ImportRequest request, AuthenticatedUser actor) {
         Part part = lockPart(partId);
         part.increaseStock(request.quantity());
@@ -79,6 +85,7 @@ public class InventoryService {
 
     /** Kiểm kê: đặt tồn về số thực tế, ghi chênh lệch (có dấu) vào sổ kho. */
     @Transactional
+    @CacheEvict(cacheNames = CacheConfig.PART_OPTIONS, allEntries = true)
     public PartResponse adjust(Long partId, AdjustRequest request, AuthenticatedUser actor) {
         Part part = lockPart(partId);
         int delta = request.newQuantity() - part.getQuantityOnHand();
@@ -99,6 +106,7 @@ public class InventoryService {
 
     /** KTV xuất linh kiện cho phiếu sửa chữa. Thiếu tồn → 409 INSUFFICIENT_STOCK. */
     @Transactional
+    @CacheEvict(cacheNames = CacheConfig.PART_OPTIONS, allEntries = true)
     public List<PartUsageResponse> exportForRepair(Long orderId, PartMovementRequest request, AuthenticatedUser actor) {
         RepairOrder order = loadOrderForParts(orderId, actor);
         Part part = lockPart(request.partId());
@@ -111,9 +119,7 @@ public class InventoryService {
         tx.setUnitCost(part.getCostPrice());
         transactionRepository.save(tx);
         if (part.isLowStock()) {
-            // Mốc 7: phát sự kiện để gửi thông báo tồn thấp cho ADMIN/STAFF
-            log.info("Linh kiện {} xuống mức tồn thấp: còn {} (tối thiểu {})",
-                    part.getSku(), part.getQuantityOnHand(), part.getMinStockLevel());
+            events.publishEvent(new LowStock(part.getId(), actor.id())); // thông báo ADMIN/STAFF sau commit
         }
         transactionRepository.flush();
         return usage(order.getId());
@@ -121,6 +127,7 @@ public class InventoryService {
 
     /** Hoàn lại linh kiện chưa dùng – không vượt quá số đã xuất cho phiếu. */
     @Transactional
+    @CacheEvict(cacheNames = CacheConfig.PART_OPTIONS, allEntries = true)
     public List<PartUsageResponse> returnFromRepair(Long orderId, PartMovementRequest request, AuthenticatedUser actor) {
         RepairOrder order = loadOrderForParts(orderId, actor);
         long used = usage(orderId).stream().filter(u -> u.partId().equals(request.partId()))

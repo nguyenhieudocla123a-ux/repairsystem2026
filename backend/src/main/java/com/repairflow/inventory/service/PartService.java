@@ -5,6 +5,7 @@ import com.repairflow.common.exception.BusinessException;
 import com.repairflow.common.exception.ErrorCode;
 import com.repairflow.common.web.PageRequests;
 import com.repairflow.common.web.PageResponse;
+import com.repairflow.config.CacheConfig;
 import com.repairflow.inventory.dto.InventoryDtos.PartOption;
 import com.repairflow.inventory.dto.InventoryDtos.PartRequest;
 import com.repairflow.inventory.dto.InventoryDtos.PartResponse;
@@ -19,6 +20,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -46,6 +49,7 @@ public class PartService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(CacheConfig.PART_OPTIONS)
     public List<PartOption> activeOptions() {
         return repository.findByActiveTrueOrderByNameAsc().stream().map(PartOption::from).toList();
     }
@@ -61,6 +65,7 @@ public class PartService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = CacheConfig.PART_OPTIONS, allEntries = true)
     public PartResponse create(PartRequest request) {
         String sku = request.sku().trim().toUpperCase(Locale.ROOT);
         if (repository.existsBySkuIgnoreCase(sku)) {
@@ -72,6 +77,7 @@ public class PartService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = CacheConfig.PART_OPTIONS, allEntries = true)
     public PartResponse update(Long id, PartRequest request) {
         Part part = load(id);
         if (request.version() == null || !request.version().equals(part.getVersion())) {
@@ -91,6 +97,7 @@ public class PartService {
 
     /** Ngừng kinh doanh thay vì xóa: giữ nguyên lịch sử kho và báo giá cũ. */
     @Transactional
+    @CacheEvict(cacheNames = CacheConfig.PART_OPTIONS, allEntries = true)
     public PartResponse setActive(Long actorId, Long id, boolean active) {
         Part part = load(id);
         if (part.isActive() != active) {

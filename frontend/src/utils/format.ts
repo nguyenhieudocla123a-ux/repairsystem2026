@@ -25,3 +25,11 @@ export function formatDateTime(iso: string | null | undefined): string {
 export function formatDate(iso: string | null | undefined): string {
   return iso ? dayjs(iso).format('DD/MM/YYYY') : '—'
 }
+
+/** Rút gọn tiền trên trục: 2.500.000 → "2,5 tr". */
+export function compactMoney(v: number): string {
+  if (Math.abs(v) >= 1_000_000_000) return `${formatNumber(Math.round(v / 100_000_000) / 10)} tỷ`
+  if (Math.abs(v) >= 1_000_000) return `${formatNumber(Math.round(v / 100_000) / 10)} tr`
+  if (Math.abs(v) >= 1_000) return `${formatNumber(Math.round(v / 1_000))} k`
+  return formatNumber(v)
+}

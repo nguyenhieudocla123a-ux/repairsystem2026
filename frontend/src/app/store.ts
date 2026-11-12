@@ -1,5 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit'
 import authReducer, { accessTokenRefreshed, sessionExpired } from '@/features/auth/authSlice'
+import notificationsReducer from '@/features/notifications/notificationsSlice'
 import { authApi } from '@/features/auth/authApi'
 import { configureHttpAuth } from '@/services/http'
 
@@ -7,6 +8,7 @@ export function createStore() {
   return configureStore({
     reducer: {
       auth: authReducer,
+      notifications: notificationsReducer,
     },
   })
 }

@@ -310,6 +310,8 @@ CUSTOMER nhận cùng DTO nhưng `deviceCondition`/thông tin nội bộ vẫn h
 
 ## 10. Warranty
 
+**Đã hiện thực (Mốc 7).** Ghi chú: `GET /warranties` nhận `q` (mã BH / mã phiếu / serial / tên khách) và `validOnly` (chưa có lọc `status`). `/public/warranty-check`: giới hạn **10 lần/phút/IP** (Redis, quá hạn → `429`), `keyword` ≥ 4 ký tự, chỉ trả model + serial đã che + thời hạn – không có dữ liệu cá nhân. Khách (C²) chỉ xem/tạo yêu cầu trên bảo hành của chính mình, ngoài phạm vi → `404`; KTV không truy cập được. Tạo yêu cầu: bảo hành phải còn hạn, chưa bị hủy và không có yêu cầu `SUBMITTED`/`ACCEPTED` đang mở (`409`). `accept` nhận thêm `priority` (mặc định `HIGH`), mở phiếu sửa mới `warrantyRepair=true`; khi phiếu đó được bàn giao, yêu cầu tự chuyển `ACCEPTED → RESOLVED`. `WarrantyDetailResponse = { warranty, claims[], canClaim }`.
+
 | Method | Path | Role | Mô tả |
 |---|---|---|---|
 | GET | `/public/warranty-check?keyword=` | P (rate limit) | Tra cứu tối thiểu theo mã BH / mã phiếu / serial |
@@ -341,6 +343,8 @@ CUSTOMER nhận cùng DTO nhưng `deviceCondition`/thông tin nội bộ vẫn h
 
 ## 11. Notifications
 
+**Đã hiện thực (Mốc 7).** Thông báo được sinh từ domain event **sau khi transaction commit** (`@TransactionalEventListener(AFTER_COMMIT)`), lưu DB trong transaction riêng rồi đẩy qua STOMP; người thực hiện hành động không nhận thông báo của chính mình. Người nhận: báo giá gửi → khách; khách duyệt/từ chối → KTV + nhân viên tiếp nhận phiếu; hoàn thành → khách + nhân viên; đổi trạng thái khác → khách; phân công → KTV; yêu cầu online mới / yêu cầu bảo hành mới → STAFF; tồn kho thấp → ADMIN + STAFF. WebSocket: CONNECT thiếu/sai token hoặc token đã thu hồi → bị từ chối; chỉ được SUBSCRIBE `/user/**` (không nghe trộm hàng đợi người khác).
+
 | Method | Path | Role | Mô tả |
 |---|---|---|---|
 | GET | `/notifications?unreadOnly=&page=` | A S T C | Thông báo của tôi |
@@ -359,6 +363,8 @@ CUSTOMER nhận cùng DTO nhưng `deviceCondition`/thông tin nội bộ vẫn h
 **WebSocket**: kết nối `ws(s)://<host>/ws`, frame CONNECT kèm header `Authorization: Bearer <token>`; subscribe `/user/queue/notifications`.
 
 ## 12. Dashboard & Reports
+
+**Đã hiện thực (Mốc 7).** Số liệu tính bằng SQL tổng hợp (không tải entity), mốc ngày theo múi giờ `Asia/Ho_Chi_Minh`. `from`/`to` mặc định 30 ngày gần nhất; `to < from` hoặc khoảng > 366 ngày → `400`. Doanh thu = tổng `final_amount` của phiếu `DELIVERED` theo ngày bàn giao. `/dashboard/admin` được cache Redis 60 giây (key `from:to`) và bị xóa khi có sự kiện nghiệp vụ; `StaffDashboardResponse` có thêm `openWarrantyClaims`. `TechnicianStat = { technicianId, fullName, completedCount, activeCount, avgHoursToComplete }`.
 
 | Method | Path | Role | Mô tả |
 |---|---|---|---|

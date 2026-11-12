@@ -1,5 +1,6 @@
 import { BellOutlined, LogoutOutlined, MenuFoldOutlined, MenuUnfoldOutlined, SearchOutlined, UserOutlined } from '@ant-design/icons'
 import { Avatar, Badge, Breadcrumb, Button, Dropdown, Input, Popover, type MenuProps } from 'antd'
+import { useState, type ReactNode } from 'react'
 import { EmptyState } from '@/components/EmptyState'
 import { ROLE_LABELS } from '@/routes/appRoutes'
 import type { Role } from '@/types/enums'
@@ -20,6 +21,8 @@ export interface AppHeaderProps {
   onNavigate: (path: string) => void
   onQuickSearch: (keyword: string) => void
   onLogout: () => void
+  /** Nội dung popover chuông (AppLayout truyền danh sách thông báo thật) */
+  notificationContent?: ReactNode
 }
 
 function initials(name: string) {
@@ -36,8 +39,8 @@ export function AppHeader(props: AppHeaderProps) {
     { key: 'logout', icon: <LogoutOutlined />, label: 'Đăng xuất', danger: true, onClick: props.onLogout },
   ]
 
-  // Mốc 7 sẽ thay bằng danh sách thông báo thật (API + WebSocket)
-  const notificationPanel = (
+  const [bellOpen, setBellOpen] = useState(false)
+  const notificationPanel = props.notificationContent ?? (
     <div className="w-80">
       <div className="flex items-center justify-between border-b border-border px-1 pb-2">
         <span className="font-semibold">Thông báo</span>
@@ -85,7 +88,7 @@ export function AppHeader(props: AppHeaderProps) {
           />
         )}
 
-        <Popover content={notificationPanel} trigger="click" placement="bottomRight" arrow={false}>
+        <Popover content={<div onClick={() => setBellOpen(false)}>{notificationPanel}</div>} trigger="click" placement="bottomRight" arrow={false} open={bellOpen} onOpenChange={setBellOpen}>
           <Button
             type="text"
             aria-label={unreadCount > 0 ? `Thông báo, ${unreadCount} chưa đọc` : 'Thông báo'}

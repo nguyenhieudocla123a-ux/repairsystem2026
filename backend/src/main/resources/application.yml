@@ -32,6 +32,8 @@ spring:
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
       timeout: 2s
+  cache:
+    type: redis
   data.web.pageable:
     max-page-size: 100
     default-page-size: 20

@@ -26,13 +26,13 @@
 | 6 | Backend Core APIs | ✅ | Customers, Devices, Repair Orders, Repair Requests |
 | 7 | Spring Security & JWT | ✅ | JWT + refresh rotation, blacklist, rate limit, RBAC, quản lý user |
 | 8 | Frontend Layout & Auth | ✅ | Đăng nhập/đăng ký/quên & đặt lại mật khẩu, hồ sơ, quản lý user – nối API thật |
-| 9 | FE–BE Integration | ⏳ | Auth, Users, Khách hàng, Thiết bị, Phiếu sửa chữa nối API thật; còn báo giá, kho, bảo hành, dashboard |
+| 9 | FE–BE Integration | ✅ | Mọi trang nghiệp vụ nối API thật (không còn trang "Đang phát triển") |
 | 10 | Repair Management | ✅ | Máy trạng thái + tiếp nhận + phân công + chẩn đoán (bàn giao ở Mốc 6) |
 | 11 | Quotation & Inventory | ✅ | Báo giá, kho, bàn giao – Backend + Frontend |
-| 12 | Warranty | ⬜ | Entity + schema đã có |
-| 13 | Dashboard & Reports | ⬜ | |
-| 14 | Redis & WebSocket | ⏳ | Redis: blacklist token + rate limit đăng nhập ✅; chưa có cache dashboard, WebSocket |
-| 15 | Unit & Integration Test | ⏳ | Backend: 49 unit + 55 integration · Frontend: 39 test |
+| 12 | Warranty | ✅ | Tra cứu công khai, yêu cầu bảo hành → phiếu sửa bảo hành |
+| 13 | Dashboard & Reports | ✅ | Dashboard theo 4 vai trò, báo cáo doanh thu / linh kiện / KTV |
+| 14 | Redis & WebSocket | ✅ | Blacklist, rate limit, cache dashboard + linh kiện; thông báo realtime STOMP |
+| 15 | Unit & Integration Test | ⏳ | Backend: 49 unit + 67 integration · Frontend: 48 test |
 | 16 | Docker Compose & Deployment | ⏳ | Compose có PostgreSQL + Redis; chưa có container backend/frontend |
 | 17 | Final Review & Documentation | ⬜ | |
 
@@ -171,6 +171,34 @@
 
 **graphify – lưu ý:** cảnh báo sức khỏe 763 cạnh trỏ tới symbol ngoài repo (thư viện) + 608 cạnh trùng cặp bị gộp; không ảnh hưởng truy vấn trong code dự án.
 
+## Mốc 7 – Checklist hoàn thành (2026-11-12)
+
+**Backend**
+- [x] Domain event (đổi trạng thái, phân công, yêu cầu online, tồn thấp, yêu cầu bảo hành) → thông báo lưu DB + đẩy WebSocket STOMP sau commit; API danh sách / số chưa đọc / đánh dấu đã đọc
+- [x] WebSocket `/ws` xác thực JWT ở CONNECT, chỉ subscribe hàng đợi của chính mình
+- [x] Bảo hành: danh sách, tra cứu, chi tiết, hủy (ADMIN, có audit), bảo hành của tôi, tra cứu công khai có rate limit; yêu cầu bảo hành → tiếp nhận (mở phiếu sửa bảo hành) / từ chối → tự RESOLVED khi bàn giao
+- [x] Dashboard ADMIN / STAFF / TECHNICIAN / CUSTOMER + 3 báo cáo (doanh thu ngày/tháng, linh kiện, hiệu suất KTV) bằng SQL tổng hợp
+- [x] Redis cache dashboard ADMIN (60s, xóa theo sự kiện) và danh sách linh kiện (10 phút, xóa khi đổi kho)
+
+**Frontend**
+- [x] Chuông thông báo (10 mới nhất, chấm trạng thái kết nối), toast realtime bấm để mở đúng trang + đánh dấu đã đọc, trang Thông báo
+- [x] Trang Bảo hành (nhân viên: yêu cầu bảo hành + danh sách, tiếp nhận chọn KTV/ưu tiên, từ chối, ADMIN hủy BH), Bảo hành của tôi (khách gửi yêu cầu), Tra cứu bảo hành công khai `/warranty-check`
+- [x] Dashboard theo vai trò (StatCard + Recharts), trang Báo cáo (biểu đồ ↔ bảng, ngày/tháng, chọn khoảng thời gian)
+
+**Đã kiểm thử thật:**
+
+| Kiểm tra | Kết quả |
+|---|---|
+| `mvnw verify` – 49 unit + 67 integration (Milestone7IT: thông báo đúng người nhận & loại trừ người thực hiện, chuyển trạng thái thất bại không sinh thông báo, **client STOMP thật nhận thông báo**, CONNECT không token bị từ chối, vòng đời bảo hành, bảo hành hết hạn bị chặn, tra cứu công khai + rate limit 429, cache dashboard bị xóa sau sự kiện, dashboard theo vai trò, báo cáo hiệu suất KTV) | ✅ 116/116 |
+| Frontend `tsc`, `oxlint`, `vitest` 48 test, `vite build` | ✅ |
+| Trình duyệt end-to-end: tra cứu công khai `WR-2026-000001` (serial bị che); khách gửi yêu cầu `WC-2026-000001` → **tab nhân viên hiện toast + chuông "1 chưa đọc" không cần tải lại**; nhân viên tiếp nhận → phiếu bảo hành `RO-2026-000002`; phân công → KTV kiểm tra → báo giá 0₫ → khách duyệt → KTV sửa: khách nhận toast, bấm toast mở `/my/repairs/2` và giảm số chưa đọc; dashboard 4 vai trò khớp dữ liệu DB; báo cáo theo ngày/tháng, chế độ bảng | ✅ |
+
+**Lỗi tìm thấy & đã sửa:** chú thích kiểu Tooltip Recharts 3 quá hẹp (tsc); trục cột ngang tự làm tròn khiến cột chỉ chiếm 1/4 chiều rộng → `domain [0, dataMax]`; bấm toast chưa đánh dấu đã đọc; một số nhãn chỉ số chưa đúng nghĩa backend (VD "phiếu mới hôm nay" thực chất là phiếu đang ở trạng thái Đã tiếp nhận) → sửa nhãn.
+
+**Giới hạn đã biết:** dashboard không tự làm mới khi có thông báo (người dùng tải lại trang); khi Vite HMR thay module hook WebSocket trong lúc dev, toast có thể không hiện tới khi tải lại trang (thông báo vẫn vào chuông) – không ảnh hưởng bản build.
+
+**Dữ liệu tạo khi test (DB dev):** yêu cầu bảo hành `WC-2026-000001`, phiếu bảo hành `RO-2026-000002` (đang sửa, KTV demo), báo giá v1 0₫ đã duyệt, các thông báo liên quan.
+
 ## Lộ trình theo mốc
 
 1. ✅ Phân tích nghiệp vụ + ERD + UI/UX
@@ -179,7 +207,7 @@
 4. ✅ Authentication + JWT + tích hợp đăng nhập + quản lý người dùng
 5. ✅ Customers, Devices, Repair Management
 6. ✅ Quotation + Inventory + Bàn giao
-7. ⬜ Warranty + Notification (WebSocket) + Dashboard
+7. ✅ Warranty + Notification (WebSocket) + Dashboard
 8. ⬜ Testing + Docker hoàn chỉnh + tài liệu
 
 ## Mock data

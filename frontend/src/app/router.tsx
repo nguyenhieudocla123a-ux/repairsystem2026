@@ -7,6 +7,11 @@ import { ProfilePage } from '@/features/auth/pages/ProfilePage'
 import { RegisterPage } from '@/features/auth/pages/RegisterPage'
 import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage'
 import { DashboardPage } from '@/features/dashboard/pages/DashboardPage'
+import { ReportsPage } from '@/features/dashboard/pages/ReportsPage'
+import { NotificationsPage } from '@/features/notifications/pages/NotificationsPage'
+import { MyWarrantiesPage } from '@/features/warranties/pages/MyWarrantiesPage'
+import { PublicWarrantyCheckPage } from '@/features/warranties/pages/PublicWarrantyCheckPage'
+import { WarrantiesPage } from '@/features/warranties/pages/WarrantiesPage'
 import { STAFF_SCOPE, UsersPage } from '@/features/users/pages/UsersPage'
 import { CustomerDetailPage } from '@/features/customers/pages/CustomerDetailPage'
 import { CustomersPage } from '@/features/customers/pages/CustomersPage'
@@ -46,6 +51,10 @@ const IMPLEMENTED: Record<string, ReactNode> = {
   '/inventory': <InventoryPage />,
   '/quotations': <QuotationsPage />,
   '/my/quotations': <MyQuotationsPage />,
+  '/warranties': <WarrantiesPage />,
+  '/my/warranties': <MyWarrantiesPage />,
+  '/notifications': <NotificationsPage />,
+  '/reports': <ReportsPage />,
 }
 
 /** Trang chi tiết lồng dưới trang danh sách → breadcrumb tự thành "Khách hàng / Chi tiết". */
@@ -103,7 +112,11 @@ export const routes: RouteObject[] = [
   },
   {
     element: <AuthLayout />,
-    children: [{ path: '/reset-password', element: <ResetPasswordPage /> }],
+    children: [
+      { path: '/reset-password', element: <ResetPasswordPage /> },
+      // Công khai cho cả khách đã đăng nhập lẫn chưa đăng nhập → không bọc GuestRoute
+      { path: '/warranty-check', element: <PublicWarrantyCheckPage /> },
+    ],
   },
   {
     path: '/',

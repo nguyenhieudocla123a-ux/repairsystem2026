@@ -2,7 +2,7 @@
 
 Hệ thống quản lý sửa chữa & bảo hành thiết bị điện tử cho trung tâm sửa chữa: tiếp nhận → kiểm tra → báo giá → sửa chữa → bàn giao → bảo hành, với 4 vai trò ADMIN / STAFF / TECHNICIAN / CUSTOMER.
 
-> 🚧 Đang phát triển – Mốc 6/8 hoàn thành (… + báo giá, kho linh kiện, bàn giao & tạo bảo hành). Xem tiến độ tại [PROJECT_STATUS.md](PROJECT_STATUS.md).
+> 🚧 Đang phát triển – Mốc 7/8 hoàn thành (… + bảo hành, thông báo realtime WebSocket, dashboard & báo cáo, Redis cache). Xem tiến độ tại [PROJECT_STATUS.md](PROJECT_STATUS.md).
 
 ## Chạy cục bộ
 

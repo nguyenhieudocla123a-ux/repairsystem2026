@@ -20,6 +20,10 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
 
     boolean existsByRole(Role role);
 
+    /** Id người dùng đang hoạt động theo vai trò – người nhận thông báo nhóm (VD mọi STAFF). */
+    @Query("SELECT u.id FROM User u WHERE u.role IN :roles AND u.status = com.repairflow.user.entity.UserStatus.ACTIVE")
+    List<Long> findActiveIdsByRoles(@Param("roles") Collection<Role> roles);
+
     /** KTV đang hoạt động + số phiếu đang xử lý → giúp STAFF phân công đều việc. */
     @Query("""
             SELECT new com.repairflow.user.dto.TechnicianOption(u.id, u.fullName, COUNT(r.id))

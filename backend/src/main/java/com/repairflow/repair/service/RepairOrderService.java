@@ -10,6 +10,8 @@ import com.repairflow.customer.service.CustomerService;
 import com.repairflow.device.entity.Device;
 import com.repairflow.device.repository.DeviceRepository;
 import com.repairflow.inventory.repository.InventoryTransactionRepository;
+import com.repairflow.notification.event.DomainEvents.RepairAssigned;
+import com.repairflow.notification.event.DomainEvents.RepairStatusChanged;
 import com.repairflow.repair.dto.RepairOrderDtos.DiagnosisRequest;
 import com.repairflow.repair.dto.RepairOrderDtos.ReceptionInfo;
 import com.repairflow.repair.dto.RepairOrderDtos.RepairOrderDetailResponse;
@@ -31,6 +33,7 @@ import java.time.Clock;
 import java.util.Map;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -56,6 +59,7 @@ public class RepairOrderService {
     private final EntityManager entityManager;
     private final Clock clock;
     private final InventoryTransactionRepository inventoryTransactionRepository;
+    private final ApplicationEventPublisher events;
 
     /** Tiếp nhận tại quầy: tạo phiếu RECEIVED. */
     @Transactional
@@ -95,6 +99,7 @@ public class RepairOrderService {
         Long previous = order.getTechnician() == null ? null : order.getTechnician().getId();
         if (!Objects.equals(previous, technicianId)) {
             order.setTechnician(technician);
+            events.publishEvent(new RepairAssigned(id, technicianId, actor.id()));
             auditService.record(actor.id(), "REPAIR_ASSIGNED", "REPAIR_ORDER", id,
                     previous == null ? Map.of("technicianId", technicianId)
                             : Map.of("technicianId", technicianId, "previousTechnicianId", previous));
@@ -154,6 +159,17 @@ public class RepairOrderService {
             }
         }
         historyRepository.save(new RepairStatusHistory(order, from, to, userRef(actor), trimToNull(note)));
+        // Một sự kiện duy nhất cho mọi lần đổi trạng thái → thông báo + xóa cache dashboard (sau commit)
+        events.publishEvent(new RepairStatusChanged(order.getId(), from, to, actor.id()));
+    }
+
+    /** Phiếu sửa chữa bảo hành (từ yêu cầu bảo hành được chấp nhận). */
+    @Transactional
+    public RepairOrder openWarrantyRepair(Customer customer, Device device, ReceptionInfo info, AuthenticatedUser actor,
+                                          String historyNote) {
+        RepairOrder order = open(customer, device, info, null, actor, historyNote);
+        order.setWarrantyRepair(true);
+        return order;
     }
 
     private RepairOrder open(Customer customer, Device device, ReceptionInfo info, RepairRequest request,
@@ -170,6 +186,9 @@ public class RepairOrderService {
         }
         repository.save(order);
         historyRepository.save(new RepairStatusHistory(order, null, RepairStatus.RECEIVED, userRef(actor), historyNote));
+        if (order.getTechnician() != null) {
+            events.publishEvent(new RepairAssigned(order.getId(), order.getTechnician().getId(), actor.id()));
+        }
         return order;
     }
 

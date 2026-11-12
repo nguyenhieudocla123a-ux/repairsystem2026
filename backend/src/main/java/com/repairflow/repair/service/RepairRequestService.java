@@ -2,14 +2,15 @@ package com.repairflow.repair.service;
 
 import com.repairflow.common.exception.BusinessException;
 import com.repairflow.common.exception.ErrorCode;
-import com.repairflow.common.util.CodeGenerator;
 import com.repairflow.common.util.CodeGenerator.CodeType;
+import com.repairflow.common.util.CodeGenerator;
 import com.repairflow.common.web.PageRequests;
 import com.repairflow.common.web.PageResponse;
 import com.repairflow.customer.entity.Customer;
 import com.repairflow.customer.service.CurrentCustomerResolver;
 import com.repairflow.device.entity.Device;
 import com.repairflow.device.service.DeviceService;
+import com.repairflow.notification.event.DomainEvents.RepairRequestCreated;
 import com.repairflow.repair.dto.RepairOrderDtos.ReceptionInfo;
 import com.repairflow.repair.dto.RepairOrderDtos.RepairOrderDetailResponse;
 import com.repairflow.repair.dto.RepairRequestDtos.CreateRepairRequestRequest;
@@ -31,6 +32,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -57,6 +59,7 @@ public class RepairRequestService {
     private final CurrentCustomerResolver currentCustomer;
     private final CodeGenerator codeGenerator;
     private final EntityManager entityManager;
+    private final ApplicationEventPublisher events;
 
     @Transactional
     public RepairRequestResponse create(CreateRepairRequestRequest request, AuthenticatedUser user) {
@@ -65,7 +68,9 @@ public class RepairRequestService {
         RepairRequest entity = new RepairRequest(codeGenerator.next(CodeType.REPAIR_REQUEST), customer, device,
                 request.issueDescription().trim());
         entity.setExpectedDropOffDate(request.expectedDropOffDate());
-        return RepairRequestResponse.from(repository.save(entity), null, null);
+        RepairRequest saved = repository.save(entity);
+        events.publishEvent(new RepairRequestCreated(saved.getId(), user.id()));
+        return RepairRequestResponse.from(saved, null, null);
     }
 
     @Transactional(readOnly = true)

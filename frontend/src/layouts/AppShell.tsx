@@ -15,6 +15,7 @@ export interface AppShellProps {
   onNavigate: (path: string) => void
   onQuickSearch: (keyword: string) => void
   onLogout: () => void
+  notificationContent?: ReactNode
   children: ReactNode
 }
 
@@ -89,6 +90,7 @@ export function AppShell(props: AppShellProps) {
           onNavigate={navigate}
           onQuickSearch={props.onQuickSearch}
           onLogout={props.onLogout}
+          notificationContent={props.notificationContent}
         />
         <Content id="main-content" tabIndex={-1} className="outline-none">
           <div className="mx-auto w-full max-w-[1440px] p-4 md:p-6">{props.children}</div>

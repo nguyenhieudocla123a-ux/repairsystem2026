@@ -71,6 +71,9 @@ export function LoginPage() {
       <p className="mt-6 text-center text-text-secondary">
         Chưa có tài khoản? <Link to="/register">Đăng ký khách hàng</Link>
       </p>
+      <p className="mt-2 text-center text-text-secondary">
+        <Link to="/warranty-check">Tra cứu bảo hành không cần đăng nhập</Link>
+      </p>
     </>
   )
 }
