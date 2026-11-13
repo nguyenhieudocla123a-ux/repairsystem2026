@@ -6,10 +6,13 @@ import com.repairflow.auth.dto.AuthDtos.ForgotPasswordRequest;
 import com.repairflow.auth.dto.AuthDtos.LoginRequest;
 import com.repairflow.auth.dto.AuthDtos.RefreshResponse;
 import com.repairflow.auth.dto.AuthDtos.RegisterRequest;
+import com.repairflow.auth.dto.AuthDtos.SendRegistrationCodeRequest;
+import com.repairflow.auth.dto.AuthDtos.SendRegistrationCodeResponse;
 import com.repairflow.auth.dto.AuthDtos.ResetPasswordRequest;
 import com.repairflow.auth.dto.AuthDtos.UpdateProfileRequest;
 import com.repairflow.auth.service.AuthService;
 import com.repairflow.auth.service.PasswordResetService;
+import com.repairflow.auth.service.RegistrationCodeService;
 import com.repairflow.auth.service.RequestMetadata;
 import com.repairflow.security.AuthProperties;
 import com.repairflow.security.AuthenticatedUser;
@@ -40,6 +43,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final PasswordResetService passwordResetService;
+    private final RegistrationCodeService registrationCodeService;
     private final RefreshTokenCookies cookies;
 
     @Operation(summary = "Đăng nhập – trả access token, đặt refresh token vào cookie HttpOnly")
@@ -51,7 +55,15 @@ public class AuthController {
                 .body(result.body());
     }
 
-    @Operation(summary = "Khách hàng đăng ký tài khoản (đăng nhập luôn)")
+    @Operation(summary = "Gửi mã xác nhận 6 số tới email (bước 1 của đăng ký)")
+    @PostMapping("/register/send-code")
+    public SendRegistrationCodeResponse sendRegistrationCode(@Valid @RequestBody SendRegistrationCodeRequest request,
+                                                             HttpServletRequest http) {
+        RegistrationCodeService.SentCode sent = registrationCodeService.send(request.email(), http.getRemoteAddr());
+        return new SendRegistrationCodeResponse(sent.expiresIn().toSeconds(), sent.resendAfter().toSeconds());
+    }
+
+    @Operation(summary = "Khách hàng đăng ký tài khoản bằng mã xác nhận email (đăng nhập luôn)")
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request, HttpServletRequest http) {
         AuthService.AuthResult result = authService.register(request, RequestMetadata.from(http));

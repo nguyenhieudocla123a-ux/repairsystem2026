@@ -7,12 +7,22 @@ spring:
       password:
 
 app:
+  # Client giả (không phải bí mật thật) để bật luồng OAuth2 trong test – không gọi tới Google/Facebook
+  oauth:
+    google:
+      client-id: test-google-client
+      client-secret: test-google-secret
+    facebook:
+      client-id: test-facebook-client
+      client-secret: test-facebook-secret
   scheduling:
     enabled: false
   auth:
     # Secret chỉ dùng cho test (không phải bí mật thật)
     jwt-secret: dGVzdC1vbmx5LXNlY3JldC1rZXktZm9yLXJlcGFpcmZsb3ctaW50ZWdyYXRpb24tdGVzdHM=
     cookie-secure: false
+    # Mọi request test đều từ 127.0.0.1 → nới giới hạn gửi mã theo IP (test riêng kiểm tra giới hạn theo email)
+    registration-code-ip-limit: 100000
 
 logging:
   level:

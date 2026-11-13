@@ -245,6 +245,18 @@
 - [x] Thay tia laser máy tính bảng → điện thoại bằng bảng hologram chẩn đoán nổi trên máy tính bảng + vệt quét dọc màn hình điện thoại (đồng bộ %), theo phản hồi người dùng
 - Ghi chú: Adobe connector không có tạo ảnh AI (text-to-image) nên dùng ảnh Stock thay cho ảnh tự tạo
 
+## Mã xác nhận email, đăng nhập Google/Facebook, trang công khai hợp nhất (2026-11-13)
+- [x] Đăng ký bằng email: nút "Gửi mã" → mã 6 số (Redis, băm SHA-256, 10 phút, 60 giây gửi lại, sai 5 lần huỷ) – TD-73
+- [x] Đăng nhập / đăng ký Google, Facebook (OAuth2 backend, Redis state, cookie HttpOnly, migration V8 `user_identities`);
+      người mới phải nhập SĐT + mã 6 số gửi về email – TD-75, hướng dẫn `docs/social-login.md`
+- [x] Trang công khai một nền tối: mạch điện + cảnh 3D chuyển động bên trái, form kính mờ bên phải, bỏ nút tạm dừng – TD-74
+- [x] Kiểm tra: backend `mvnw verify` 131 test xanh (SocialLoginIT 7, thêm 4 test mã xác nhận); frontend 51 test, build OK;
+      thử thật luồng gửi mã → Redis → đăng ký trên trình duyệt (backend 8081)
+- [x] Google: đã tạo OAuth client (chế độ Testing) và thử thật đầu-cuối – Gmail trùng tài khoản khách được liên kết, vào thẳng Tổng quan
+- [x] Gửi mã qua Gmail SMTP (App Password) – đã nhận mã thật trong hộp thư
+- [ ] Facebook: chưa có App ID/Secret → nút vẫn tắt
+- [ ] Chưa thử nhánh tài khoản Google mới (trang Hoàn tất đăng ký) với Google thật
+
 ## Lộ trình theo mốc
 
 1. ✅ Phân tích nghiệp vụ + ERD + UI/UX

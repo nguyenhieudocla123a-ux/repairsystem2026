@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit'
 import { toAppError, type AppError } from '@/utils/errors'
 import { authApi } from './authApi'
-import type { AuthResponse, AuthUser, LoginRequest, RegisterRequest } from './types'
+import type { AuthResponse, AuthUser, CompleteSocialSignupRequest, LoginRequest, RegisterRequest } from './types'
 
 /**
  * Trạng thái đăng nhập. Access token chỉ nằm trong RAM (Redux), không lưu localStorage (TD-02).
@@ -33,6 +33,11 @@ export const login = createAsyncThunk<AuthResponse, LoginRequest, { rejectValue:
 export const register = createAsyncThunk<AuthResponse, RegisterRequest, { rejectValue: AppError }>(
   'auth/register',
   (body, { rejectWithValue }) => authApi.register(body).catch((e: unknown) => rejectWithValue(toAppError(e))),
+)
+
+export const completeSocialSignup = createAsyncThunk<AuthResponse, CompleteSocialSignupRequest, { rejectValue: AppError }>(
+  'auth/completeSocialSignup',
+  (body, { rejectWithValue }) => authApi.oauthComplete(body).catch((e: unknown) => rejectWithValue(toAppError(e))),
 )
 
 export const logout = createAsyncThunk('auth/logout', async () => {
@@ -76,6 +81,7 @@ const authSlice = createSlice({
       })
       .addCase(login.fulfilled, authenticated)
       .addCase(register.fulfilled, authenticated)
+      .addCase(completeSocialSignup.fulfilled, authenticated)
       .addCase(logout.fulfilled, (state) => {
         state.status = 'anonymous'
         state.user = null

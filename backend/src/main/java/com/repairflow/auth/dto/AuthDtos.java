@@ -5,6 +5,7 @@ import com.repairflow.common.validation.VietnamesePhone;
 import com.repairflow.user.dto.UserResponse;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
@@ -27,7 +28,19 @@ public final class AuthDtos {
             String email,
             @NotBlank(message = "Vui lòng nhập số điện thoại") @VietnamesePhone String phone,
             @StrongPassword String password,
-            @Size(max = 255, message = "Địa chỉ tối đa 255 ký tự") String address) {
+            @Size(max = 255, message = "Địa chỉ tối đa 255 ký tự") String address,
+            @NotBlank(message = "Vui lòng nhập mã xác nhận đã gửi tới email")
+            @Pattern(regexp = "\\d{6}", message = "Mã xác nhận gồm 6 chữ số") String verificationCode) {
+    }
+
+    /** Bước 1 của đăng ký: gửi mã 6 số tới email để chứng minh người đăng ký sở hữu email đó. */
+    public record SendRegistrationCodeRequest(
+            @NotBlank(message = "Vui lòng nhập email") @Email(message = "Email không hợp lệ") @Size(max = 255)
+            String email) {
+    }
+
+    /** Thời gian mã còn hiệu lực và thời gian phải chờ trước khi được gửi lại (giây). */
+    public record SendRegistrationCodeResponse(long expiresIn, long resendAfter) {
     }
 
     /** Access token trả trong body; refresh token chỉ nằm trong cookie HttpOnly (không bao giờ trong body). */

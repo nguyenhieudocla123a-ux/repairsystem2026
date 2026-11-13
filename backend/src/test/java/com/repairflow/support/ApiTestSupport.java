@@ -28,6 +28,9 @@ public abstract class ApiTestSupport extends IntegrationTestBase {
     @Autowired
     protected PasswordEncoder passwordEncoder;
 
+    @Autowired
+    protected CapturingVerificationCodeMailer mailer;
+
     protected ResponseEntity<JsonNode> call(HttpMethod method, String path, Object body, String token) {
         HttpHeaders headers = new HttpHeaders();
         if (token != null) {
@@ -70,10 +73,12 @@ public abstract class ApiTestSupport extends IntegrationTestBase {
         return res.getBody().get("accessToken").asText();
     }
 
-    /** Đăng ký khách hàng tự phục vụ, trả về access token. */
+    /** Đăng ký đúng luồng thật: gửi mã xác nhận → đọc mã từ mailer test → đăng ký kèm mã. */
     protected String registerCustomer() {
-        Map<String, String> body = Map.of("fullName", "Khách Test", "email", uniqueEmail("cus"), "phone", uniquePhone(),
-                "password", PASSWORD);
+        String email = uniqueEmail("cus");
+        post("/auth/register/send-code", Map.of("email", email), null);
+        Map<String, String> body = Map.of("fullName", "Khách Test", "email", email, "phone", uniquePhone(),
+                "password", PASSWORD, "verificationCode", mailer.lastCodeFor(email));
         return post("/auth/register", body, null).getBody().get("accessToken").asText();
     }
 }

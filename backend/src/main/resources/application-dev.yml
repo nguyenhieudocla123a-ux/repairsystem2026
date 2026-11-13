@@ -11,4 +11,4 @@ management:
 
 app:
   auth:
-    log-reset-links: true   # dev chưa có SMTP: in link đặt lại mật khẩu ra log
+    log-reset-links: true   # dev: in link đặt lại mật khẩu + mã xác nhận đăng ký ra log khi chưa đặt MAIL_HOST

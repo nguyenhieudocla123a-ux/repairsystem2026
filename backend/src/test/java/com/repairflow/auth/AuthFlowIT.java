@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.repairflow.auth.entity.PasswordResetToken;
 import com.repairflow.auth.repository.PasswordResetTokenRepository;
 import com.repairflow.common.util.TokenHasher;
+import com.repairflow.support.CapturingVerificationCodeMailer;
 import com.repairflow.support.IntegrationTestBase;
 import com.repairflow.user.entity.Role;
 import com.repairflow.user.entity.User;
@@ -16,6 +17,7 @@ import io.jsonwebtoken.security.Keys;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -82,8 +84,22 @@ class AuthFlowIT extends IntegrationTestBase {
         return prefix + "-" + UUID.randomUUID().toString().substring(0, 8) + "@test.local";
     }
 
+    @Autowired
+    private CapturingVerificationCodeMailer mailer;
+
+    private ResponseEntity<JsonNode> sendCode(String email) {
+        return call(HttpMethod.POST, "/auth/register/send-code", Map.of("email", email), null, null);
+    }
+
+    /** Body đăng ký hợp lệ: đã gửi mã tới email và kèm đúng mã nhận được. */
     private Map<String, String> registerBody(String email) {
-        return Map.of("fullName", "Khách Test", "email", email, "phone", uniquePhone(), "password", PASSWORD);
+        sendCode(email);
+        return Map.of("fullName", "Khách Test", "email", email, "phone", uniquePhone(), "password", PASSWORD,
+                "verificationCode", mailer.lastCodeFor(email));
+    }
+
+    private static String wrongCode(String code) {
+        return code.equals("000000") ? "111111" : "000000";
     }
 
     private User createUser(Role role) {
@@ -122,7 +138,7 @@ class AuthFlowIT extends IntegrationTestBase {
         @Test
         void weakPasswordReturnsFieldErrors() {
             Map<String, String> body = Map.of("fullName", "A B", "email", uniqueEmail("weak"), "phone", uniquePhone(),
-                    "password", "abc");
+                    "password", "abc", "verificationCode", "123456");
 
             ResponseEntity<JsonNode> res = call(HttpMethod.POST, "/auth/register", body, null, null);
 
@@ -136,12 +152,67 @@ class AuthFlowIT extends IntegrationTestBase {
             Map<String, String> first = registerBody(uniqueEmail("dup1"));
             call(HttpMethod.POST, "/auth/register", first, null, null);
             Map<String, String> second = Map.of("fullName", "Người khác", "email", uniqueEmail("dup2"),
-                    "phone", first.get("phone"), "password", PASSWORD);
+                    "phone", first.get("phone"), "password", PASSWORD, "verificationCode", "123456");
 
             ResponseEntity<JsonNode> res = call(HttpMethod.POST, "/auth/register", second, null, null);
 
             assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
             assertThat(res.getBody().get("code").asText()).isEqualTo("DUPLICATE_RESOURCE");
+        }
+
+        @Test
+        void sendCodeReturnsTtlAndBlocksImmediateResend() {
+            String email = uniqueEmail("code");
+
+            ResponseEntity<JsonNode> sent = sendCode(email);
+            assertThat(sent.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(sent.getBody().get("expiresIn").asLong()).isEqualTo(600);
+            assertThat(sent.getBody().get("resendAfter").asLong()).isEqualTo(60);
+            assertThat(mailer.lastCodeFor(email)).matches("\\d{6}");
+            assertThat(sent.getBody().toString()).doesNotContain(mailer.lastCodeFor(email));
+
+            ResponseEntity<JsonNode> again = sendCode(email);
+            assertThat(again.getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
+        }
+
+        @Test
+        void sendCodeToRegisteredEmailIsConflict() {
+            String email = uniqueEmail("taken");
+            call(HttpMethod.POST, "/auth/register", registerBody(email), null, null);
+
+            assertThat(sendCode(email.toUpperCase()).getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        }
+
+        @Test
+        void registerWithoutSendingCodeIsRejected() {
+            Map<String, String> body = Map.of("fullName", "Khách Test", "email", uniqueEmail("nocode"),
+                    "phone", uniquePhone(), "password", PASSWORD, "verificationCode", "123456");
+
+            ResponseEntity<JsonNode> res = call(HttpMethod.POST, "/auth/register", body, null, null);
+
+            assertThat(res.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(res.getBody().get("code").asText()).isEqualTo("BAD_REQUEST");
+        }
+
+        @Test
+        void fiveWrongCodesInvalidateTheCode() {
+            String email = uniqueEmail("brute");
+            Map<String, String> valid = registerBody(email);
+            Map<String, String> wrong = new HashMap<>(valid);
+            wrong.put("verificationCode", wrongCode(valid.get("verificationCode")));
+
+            for (int i = 1; i < 5; i++) {
+                ResponseEntity<JsonNode> res = call(HttpMethod.POST, "/auth/register", wrong, null, null);
+                assertThat(res.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+                assertThat(res.getBody().get("message").asText()).contains("còn " + (5 - i) + " lần");
+            }
+            ResponseEntity<JsonNode> fifth = call(HttpMethod.POST, "/auth/register", wrong, null, null);
+            assertThat(fifth.getBody().get("message").asText()).contains("gửi lại mã mới");
+
+            // Mã đúng cũng không dùng được nữa sau khi đã bị huỷ
+            ResponseEntity<JsonNode> late = call(HttpMethod.POST, "/auth/register", valid, null, null);
+            assertThat(late.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(userRepository.findByEmail(email)).isEmpty();
         }
     }
 

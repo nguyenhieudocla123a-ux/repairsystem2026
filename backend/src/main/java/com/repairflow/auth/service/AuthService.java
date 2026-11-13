@@ -46,6 +46,7 @@ public class AuthService {
     private final TokenBlacklistService blacklistService;
     private final LoginAttemptService loginAttemptService;
     private final CodeGenerator codeGenerator;
+    private final RegistrationCodeService registrationCodeService;
     private final Clock clock;
 
     /**
@@ -66,9 +67,11 @@ public class AuthService {
         loginAttemptService.assertNotBlocked(email);
 
         User user = userRepository.findByEmail(email).orElse(null);
-        String hash = user != null ? user.getPasswordHash() : dummyHash();
+        // Chưa có user hoặc user chỉ đăng nhập bằng Google/Facebook (chưa có mật khẩu) → so với hash giả,
+        // thời gian phản hồi như nhau và luôn trả "sai email hoặc mật khẩu"
+        String hash = user != null && user.getPasswordHash() != null ? user.getPasswordHash() : dummyHash();
         boolean passwordMatches = passwordEncoder.matches(request.password(), hash);
-        if (user == null || !passwordMatches) {
+        if (user == null || user.getPasswordHash() == null || !passwordMatches) {
             loginAttemptService.recordFailure(email);
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS, "Email hoặc mật khẩu không đúng");
         }
@@ -85,26 +88,40 @@ public class AuthService {
     @Transactional
     public AuthResult register(RegisterRequest request, RequestMetadata metadata) {
         String email = normalizeEmail(request.email());
-        if (userRepository.existsByEmail(email) || customerRepository.existsByEmail(email)) {
+        assertCanRegister(email, request.phone());
+        // Chứng minh sở hữu email: kiểm tra sau các lỗi trùng để không "đốt" lượt thử của người dùng vô ích
+        registrationCodeService.verifyAndConsume(email, request.verificationCode());
+        User user = createCustomerAccount(email, passwordEncoder.encode(request.password()), request.fullName(),
+                request.phone(), request.address());
+        return startSession(user, metadata);
+    }
+
+    /** Email và SĐT chưa thuộc tài khoản / hồ sơ khách nào (dùng chung cho đăng ký thường và Google/Facebook). */
+    public void assertCanRegister(String normalizedEmail, String phone) {
+        if (userRepository.existsByEmail(normalizedEmail) || customerRepository.existsByEmail(normalizedEmail)) {
             throw new BusinessException(ErrorCode.DUPLICATE_RESOURCE, "Email đã được sử dụng");
         }
-        if (customerRepository.existsByPhone(request.phone())) {
+        if (customerRepository.existsByPhone(phone)) {
             // Không tự liên kết với hồ sơ có sẵn: ai biết SĐT cũng có thể chiếm hồ sơ người khác (requirements AUTH-02)
             throw new BusinessException(ErrorCode.DUPLICATE_RESOURCE,
                     "Số điện thoại đã có hồ sơ tại cửa hàng. Vui lòng liên hệ nhân viên để kích hoạt tài khoản");
         }
+    }
 
-        User user = userRepository.save(new User(email, passwordEncoder.encode(request.password()),
-                request.fullName().trim(), request.phone(), Role.CUSTOMER));
+    /**
+     * Tạo tài khoản CUSTOMER + hồ sơ khách hàng liên kết. passwordHash null = tài khoản Google/Facebook chưa có mật khẩu.
+     * Phải gọi trong transaction, sau {@link #assertCanRegister}.
+     */
+    public User createCustomerAccount(String normalizedEmail, String passwordHash, String fullName, String phone, String address) {
+        User user = userRepository.save(new User(normalizedEmail, passwordHash, fullName.trim(), phone, Role.CUSTOMER));
         user.setLastLoginAt(clock.instant());
 
-        Customer customer = new Customer(codeGenerator.next(CodeType.CUSTOMER), request.fullName().trim(), request.phone());
-        customer.setEmail(email);
-        customer.setAddress(StringUtils.hasText(request.address()) ? request.address().trim() : null);
+        Customer customer = new Customer(codeGenerator.next(CodeType.CUSTOMER), fullName.trim(), phone);
+        customer.setEmail(normalizedEmail);
+        customer.setAddress(StringUtils.hasText(address) ? address.trim() : null);
         customer.setUser(user);
         customerRepository.save(customer);
-
-        return startSession(user, metadata);
+        return user;
     }
 
     @Transactional(noRollbackFor = BusinessException.class)
@@ -166,6 +183,10 @@ public class AuthService {
     @Transactional
     public AuthResult changePassword(Long userId, ChangePasswordRequest request, RequestMetadata metadata) {
         User user = loadUser(userId);
+        if (user.getPasswordHash() == null) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST,
+                    "Tài khoản đăng nhập bằng Google/Facebook chưa có mật khẩu. Dùng \"Quên mật khẩu\" để tạo mật khẩu");
+        }
         if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Mật khẩu hiện tại không đúng");
         }
@@ -177,7 +198,8 @@ public class AuthService {
         return startSession(user, metadata);
     }
 
-    private AuthResult startSession(User user, RequestMetadata metadata) {
+    /** Cấp access token + refresh token mới (dùng chung cho đăng nhập mật khẩu và Google/Facebook). */
+    public AuthResult startSession(User user, RequestMetadata metadata) {
         IssuedToken refresh = refreshTokenService.issue(user, UUID.randomUUID(), metadata);
         String accessToken = jwtService.generateAccessToken(user);
         AuthResponse body = AuthResponse.of(accessToken, jwtService.accessTokenTtlSeconds(), toResponse(user));
@@ -202,7 +224,7 @@ public class AuthService {
         return dummyHash;
     }
 
-    static String normalizeEmail(String email) {
+    public static String normalizeEmail(String email) {
         return email.trim().toLowerCase(Locale.ROOT);
     }
 }

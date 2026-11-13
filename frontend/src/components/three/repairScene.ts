@@ -749,7 +749,7 @@ export function createRepairScene(container: HTMLElement, { animate: animateInit
 
   // ------------------------------------------------------------------ Bảng hologram chẩn đoán nổi trên máy tính bảng
   const holoCanvas = document.createElement('canvas')
-  drawHologram(holoCanvas, 0, 0)
+  drawHologram(holoCanvas, animateInitially ? 0 : 1, 0) // đứng yên → hiển thị trạng thái "hoàn tất"
   const holoTex = new THREE.CanvasTexture(holoCanvas)
   holoTex.colorSpace = THREE.SRGBColorSpace
   const holoMat = new THREE.MeshBasicMaterial({ map: holoTex, transparent: true, depthWrite: false, toneMapped: false, side: THREE.DoubleSide })
@@ -798,6 +798,7 @@ export function createRepairScene(container: HTMLElement, { animate: animateInit
   const SCAN_H = 0.9
   const scan = new THREE.Mesh(g(new THREE.PlaneGeometry(PW - 0.1, SCAN_H)), scanMat)
   scan.position.z = PD / 2 + 0.012
+  scan.visible = animateInitially // ảnh tĩnh: không có vệt quét dở dang
   phone.add(scan)
   let holoPct = -1
   let holoDrawnAt = 0
@@ -979,9 +980,19 @@ export function createRepairScene(container: HTMLElement, { animate: animateInit
       requestAnimationFrame(renderOnce)
     }
   }
-  const io = new IntersectionObserver(([entry]) => {
-    visibleOnScreen = entry.isIntersecting
+  const io = new IntersectionObserver((entries) => {
+    visibleOnScreen = entries[entries.length - 1].isIntersecting
     sync()
+    if (!visibleOnScreen) {
+      // Lần báo đầu có thể đến khi khung chưa được bố cục xong → kiểm tra lại bằng toạ độ thật ở frame sau
+      requestAnimationFrame(() => {
+        const r = container.getBoundingClientRect()
+        if (!disposed && !visibleOnScreen && r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < window.innerHeight) {
+          visibleOnScreen = true
+          sync()
+        }
+      })
+    }
   })
   io.observe(container)
   document.addEventListener('visibilitychange', sync)

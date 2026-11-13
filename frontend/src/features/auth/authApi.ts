@@ -3,10 +3,14 @@ import type {
   AuthResponse,
   AuthUser,
   ChangePasswordRequest,
+  CompleteSocialSignupRequest,
+  PendingSocialSignup,
+  SocialProvider,
   ForgotPasswordRequest,
   LoginRequest,
   RegisterRequest,
   ResetPasswordRequest,
+  SendRegistrationCodeResponse,
   UpdateProfileRequest,
 } from './types'
 
@@ -14,6 +18,21 @@ import type {
 export const authApi = {
   login: (body: LoginRequest) =>
     http.post<AuthResponse>('/auth/login', body, { skipAuthRefresh: true }).then((r) => r.data),
+
+  sendRegistrationCode: (email: string) =>
+    http
+      .post<SendRegistrationCodeResponse>('/auth/register/send-code', { email }, { skipAuthRefresh: true })
+      .then((r) => r.data),
+
+  /** Nhà cung cấp Google/Facebook đang bật ở backend */
+  oauthProviders: () =>
+    http.get<{ providers: SocialProvider[] }>('/auth/oauth2/providers', { skipAuthRefresh: true }).then((r) => r.data.providers),
+
+  /** Thông tin phiên đăng ký chờ sau khi quay về từ Google/Facebook (cookie HttpOnly) */
+  oauthPending: () => http.get<PendingSocialSignup>('/auth/oauth2/pending', { skipAuthRefresh: true }).then((r) => r.data),
+
+  oauthComplete: (body: CompleteSocialSignupRequest) =>
+    http.post<AuthResponse>('/auth/oauth2/complete', body, { skipAuthRefresh: true }).then((r) => r.data),
 
   register: (body: RegisterRequest) =>
     http.post<AuthResponse>('/auth/register', body, { skipAuthRefresh: true }).then((r) => r.data),
@@ -46,3 +65,6 @@ export const authApi = {
   resetPassword: (body: ResetPasswordRequest) =>
     http.post<void>('/auth/reset-password', body, { skipAuthRefresh: true }),
 }
+
+/** Địa chỉ bắt đầu đăng nhập Google/Facebook – điều hướng cả trang (không phải XHR) vì phải sang trang của họ. */
+export const oauthAuthorizeUrl = (provider: SocialProvider) => `${http.defaults.baseURL ?? '/api/v1'}/auth/oauth2/authorize/${provider}`

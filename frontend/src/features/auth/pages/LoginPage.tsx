@@ -3,19 +3,32 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Alert, Button, Form, Input } from 'antd'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAppDispatch } from '@/app/hooks'
 import { canAccessPath } from '@/routes/appRoutes'
 import { FormField } from '@/components/form/FormField'
 import { getErrorMessage } from '@/utils/errors'
 import { login } from '../authSlice'
+import { SocialButtons } from '../components/SocialButtons'
 import { loginSchema, type LoginForm } from '../schemas'
+
+/** Mã lỗi backend gửi về qua ?oauthError= sau khi đăng nhập Google/Facebook không thành. */
+const OAUTH_ERRORS: Record<string, string> = {
+  CANCELLED: 'Bạn đã huỷ đăng nhập bằng Google/Facebook.',
+  STAFF_ACCOUNT: 'Tài khoản nhân viên chỉ đăng nhập bằng email và mật khẩu.',
+  EMAIL_EXISTS: 'Email này đã có tài khoản. Vui lòng đăng nhập bằng mật khẩu (hoặc dùng Quên mật khẩu).',
+  EMAIL_REQUIRED: 'Tài khoản mạng xã hội không cung cấp email. Vui lòng đăng ký bằng email.',
+  ACCOUNT_LOCKED: 'Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.',
+  OAUTH_FAILED: 'Đăng nhập bằng Google/Facebook không thành công, vui lòng thử lại.',
+}
 
 export function LoginPage() {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const location = useLocation()
-  const [formError, setFormError] = useState<string | null>(null)
+  const [searchParams] = useSearchParams()
+  const oauthError = searchParams.get('oauthError')
+  const [formError, setFormError] = useState<string | null>(oauthError ? (OAUTH_ERRORS[oauthError] ?? OAUTH_ERRORS.OAUTH_FAILED) : null)
 
   const { control, handleSubmit, formState } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -70,6 +83,8 @@ export function LoginPage() {
           Đăng nhập
         </Button>
       </Form>
+
+      <SocialButtons />
 
       <div className="my-6 flex items-center gap-3 text-xs text-text-muted">
         <span className="h-px flex-1 bg-border" />

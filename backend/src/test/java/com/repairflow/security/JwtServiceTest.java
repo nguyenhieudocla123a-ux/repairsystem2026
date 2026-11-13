@@ -21,7 +21,8 @@ class JwtServiceTest {
 
     private static AuthProperties props(String secret) {
         return new AuthProperties(secret, Duration.ofMinutes(15), Duration.ofDays(7), false, 5,
-                Duration.ofMinutes(15), Duration.ofMinutes(30), "http://localhost:5173", false);
+                Duration.ofMinutes(15), Duration.ofMinutes(30), "http://localhost:5173", false,
+                Duration.ofMinutes(10), 10, "no-reply@test.local");
     }
 
     private static JwtService serviceAt(Instant instant) {

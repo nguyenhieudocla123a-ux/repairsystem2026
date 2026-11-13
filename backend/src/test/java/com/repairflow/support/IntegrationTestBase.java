@@ -1,6 +1,10 @@
 package com.repairflow.support;
 
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.containers.GenericContainer;
@@ -14,7 +18,18 @@ import org.testcontainers.utility.DockerImageName;
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
+@Import(IntegrationTestBase.MailTestConfig.class)
 public abstract class IntegrationTestBase {
+
+    /** Mailer ghi lại mã thay cho SMTP – khai báo ở lớp nền nên mọi test dùng chung một ApplicationContext. */
+    @TestConfiguration
+    static class MailTestConfig {
+        @Bean
+        @Primary
+        CapturingVerificationCodeMailer capturingVerificationCodeMailer() {
+            return new CapturingVerificationCodeMailer();
+        }
+    }
 
     @ServiceConnection
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");

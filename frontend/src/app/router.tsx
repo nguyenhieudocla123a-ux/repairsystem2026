@@ -4,7 +4,9 @@ import { FullScreenLoader } from '@/components/FullScreenLoader'
 import { ForgotPasswordPage } from '@/features/auth/pages/ForgotPasswordPage'
 import { LoginPage } from '@/features/auth/pages/LoginPage'
 import { ProfilePage } from '@/features/auth/pages/ProfilePage'
+import { OAuthCallbackPage } from '@/features/auth/pages/OAuthCallbackPage'
 import { RegisterPage } from '@/features/auth/pages/RegisterPage'
+import { SocialRegisterPage } from '@/features/auth/pages/SocialRegisterPage'
 import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage'
 import { DashboardPage } from '@/features/dashboard/pages/DashboardPage'
 import { ReportsPage } from '@/features/dashboard/pages/ReportsPage'
@@ -108,6 +110,9 @@ export const routes: RouteObject[] = [
       { path: '/login', element: <LoginPage /> },
       { path: '/register', element: <RegisterPage /> },
       { path: '/forgot-password', element: <ForgotPasswordPage /> },
+      // Quay về từ Google/Facebook (backend chuyển hướng tới đây)
+      { path: '/register/social', element: <SocialRegisterPage /> },
+      { path: '/oauth/callback', element: <OAuthCallbackPage /> },
     ],
   },
   {

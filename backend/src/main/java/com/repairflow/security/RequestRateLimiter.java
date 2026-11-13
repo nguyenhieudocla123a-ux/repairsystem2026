@@ -20,14 +20,17 @@ public class RequestRateLimiter {
     private final StringRedisTemplate redis;
 
     public void check(String key, int limit, Duration window) {
+        check(key, limit, window, "Bạn tra cứu quá nhiều lần, vui lòng thử lại sau " + window.toSeconds() + " giây");
+    }
+
+    public void check(String key, int limit, Duration window, String message) {
         try {
             Long count = redis.opsForValue().increment("rl:" + key);
             if (count != null && count == 1) {
                 redis.expire("rl:" + key, window);
             }
             if (count != null && count > limit) {
-                throw new BusinessException(ErrorCode.TOO_MANY_REQUESTS,
-                        "Bạn tra cứu quá nhiều lần, vui lòng thử lại sau " + window.toSeconds() + " giây");
+                throw new BusinessException(ErrorCode.TOO_MANY_REQUESTS, message);
             }
         } catch (BusinessException e) {
             throw e;

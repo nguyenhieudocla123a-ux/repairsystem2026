@@ -44,7 +44,8 @@ class RefreshTokenServiceTest {
     @BeforeEach
     void setUp() {
         AuthProperties props = new AuthProperties("unused", Duration.ofMinutes(15), Duration.ofDays(7), false, 5,
-                Duration.ofMinutes(15), Duration.ofMinutes(30), "http://localhost", false);
+                Duration.ofMinutes(15), Duration.ofMinutes(30), "http://localhost", false,
+                Duration.ofMinutes(10), 10, "no-reply@test.local");
         service = new RefreshTokenService(repository, props, Clock.fixed(NOW, ZoneOffset.UTC));
         user = new User("a@test.local", "hash", "A", null, Role.CUSTOMER);
     }

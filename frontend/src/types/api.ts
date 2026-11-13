@@ -29,6 +29,7 @@ export type ErrorCode =
   | 'CONCURRENT_MODIFICATION'
   | 'TOO_MANY_REQUESTS'
   | 'INTERNAL_ERROR'
+  | 'SERVICE_UNAVAILABLE'
 
 /** Định dạng lỗi chuẩn của Backend (ApiErrorResponse.java). */
 export interface ApiErrorResponse {

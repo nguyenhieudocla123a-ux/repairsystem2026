@@ -1,5 +1,10 @@
 package com.repairflow.security;
 
+import com.repairflow.auth.oauth.NoOpAuthorizedClientRepository;
+import com.repairflow.auth.oauth.OAuthClientConfig;
+import com.repairflow.auth.oauth.OAuthLoginHandlers;
+import com.repairflow.auth.oauth.RedisAuthorizationRequestRepository;
+
 import com.repairflow.config.CorsProperties;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -46,10 +51,17 @@ public class SecurityConfig {
     private static final String[] PUBLIC_AUTH_POSTS = {
             "/api/v1/auth/login",
             "/api/v1/auth/register",
+            "/api/v1/auth/register/send-code",
             "/api/v1/auth/refresh",
             "/api/v1/auth/logout",
             "/api/v1/auth/forgot-password",
             "/api/v1/auth/reset-password",
+            "/api/v1/auth/oauth2/complete",
+    };
+
+    private static final String[] PUBLIC_AUTH_GETS = {
+            "/api/v1/auth/oauth2/providers",
+            "/api/v1/auth/oauth2/pending",
     };
 
     private final CorsProperties corsProperties;
@@ -58,7 +70,14 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    /**
+     * Các bean OAuth2 nhận qua tham số (không qua constructor): handler → AuthService → PasswordEncoder lại do
+     * chính lớp này khai báo → inject qua constructor sẽ tạo vòng phụ thuộc.
+     */
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                                   OAuthClientConfig.SocialClientRegistrations socialRegistrations,
+                                                   RedisAuthorizationRequestRepository authorizationRequestRepository,
+                                                   OAuthLoginHandlers oauthLoginHandlers) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -72,8 +91,20 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_PATHS).permitAll()
                         .requestMatchers(HttpMethod.POST, PUBLIC_AUTH_POSTS).permitAll()
+                        .requestMatchers(HttpMethod.GET, PUBLIC_AUTH_GETS).permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        if (!socialRegistrations.isEmpty()) {
+            // Đăng nhập Google/Facebook (chỉ bật khi có ít nhất một nhà cung cấp được cấu hình – TD-74)
+            http.oauth2Login(oauth -> oauth
+                    .authorizationEndpoint(a -> a
+                            .baseUri(OAuthClientConfig.AUTHORIZE_BASE_URI)
+                            .authorizationRequestRepository(authorizationRequestRepository))
+                    .redirectionEndpoint(r -> r.baseUri(OAuthClientConfig.CALLBACK_BASE_URI))
+                    .authorizedClientRepository(new NoOpAuthorizedClientRepository()) // không giữ token Google/Facebook
+                    .successHandler(oauthLoginHandlers)
+                    .failureHandler(oauthLoginHandlers));
+        }
         return http.build();
     }
 

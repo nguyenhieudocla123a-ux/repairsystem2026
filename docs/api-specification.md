@@ -54,7 +54,13 @@ Frontend: interceptor chỉ tự refresh khi `401` + `code = TOKEN_EXPIRED`.
 | Method | Path | Role | Mô tả |
 |---|---|---|---|
 | POST | `/auth/login` | P | Đăng nhập |
-| POST | `/auth/register` | P | Khách hàng đăng ký |
+| POST | `/auth/register/send-code` | P | Gửi mã 6 số tới email `{email}` → `{expiresIn: 600, resendAfter: 60}`; 409 email đã dùng, 429 chưa đủ 60 giây / quá 10 lần mỗi giờ mỗi IP |
+| POST | `/auth/register` | P | Khách hàng đăng ký – bắt buộc `verificationCode` (6 số); sai/hết hạn → 400, sai 5 lần huỷ mã |
+| GET | `/auth/oauth2/providers` | P | Nhà cung cấp đang bật `{providers: ["google","facebook"]}` |
+| GET | `/auth/oauth2/authorize/{google\|facebook}` | P | Điều hướng trình duyệt sang Google/Facebook (302) – xem docs/social-login.md |
+| GET | `/auth/oauth2/callback/{id}` | P | Google/Facebook gọi về; chuyển tới `/oauth/callback`, `/register/social` hoặc `/login?oauthError=` |
+| GET | `/auth/oauth2/pending` | P (cookie `rf_oauth_signup`) | Thông tin đăng ký chờ `{provider, email, fullName}` |
+| POST | `/auth/oauth2/complete` | P (cookie `rf_oauth_signup`) | `{fullName, phone, address?, verificationCode}` → 201 + cookie refresh token |
 | POST | `/auth/refresh` | P (cookie) | Cấp access token mới, xoay vòng refresh token |
 | POST | `/auth/logout` | P (cookie) + Bearer nếu có | Thu hồi refresh token, blacklist access token |
 | POST | `/auth/forgot-password` | P | Luôn trả 204 (không tiết lộ email có tồn tại) |

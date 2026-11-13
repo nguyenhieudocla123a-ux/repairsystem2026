@@ -1,142 +1,104 @@
-import { BellOutlined, FileProtectOutlined, PauseOutlined, PlayCircleOutlined, SafetyCertificateOutlined } from '@ant-design/icons'
-import { Button, Grid } from 'antd'
-import { Suspense, useState, type ReactNode } from 'react'
+import { BellOutlined, FileProtectOutlined, SafetyCertificateOutlined } from '@ant-design/icons'
+import { Button, ConfigProvider, Grid } from 'antd'
+import { Suspense, type ReactNode } from 'react'
 import { Link, Outlet } from 'react-router-dom'
-import { RepairScene3D } from '@/components/three/lazyRepairScene'
 import { CircuitTraces } from '@/components/CircuitTraces'
+import { RepairScene3D } from '@/components/three/lazyRepairScene'
 import { Scene3DBoundary } from '@/components/three/Scene3DBoundary'
+import { antdPublicDarkTheme } from '@/theme/antdTheme'
 
 const CURRENT_YEAR = new Date().getFullYear()
-const MOTION_KEY = 'rf-public-motion-paused'
-
-/** Nút tạm dừng / tiếp tục chuyển động (WCAG 2.2.2 – nội dung chuyển động > 5 giây phải dừng được). */
-function MotionToggle({ paused, onToggle }: { paused: boolean; onToggle: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      aria-pressed={paused}
-      aria-label={paused ? 'Tiếp tục chuyển động' : 'Tạm dừng chuyển động'}
-      title={paused ? 'Tiếp tục chuyển động' : 'Tạm dừng chuyển động'}
-      className="focus-ring pointer-events-auto flex size-10 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-white/10 text-base text-white backdrop-blur-md hover:bg-white/20"
-    >
-      {paused ? <PlayCircleOutlined /> : <PauseOutlined />}
-    </button>
-  )
-}
-
 const FEATURES: { icon: ReactNode; title: string; text: string }[] = [
   { icon: <BellOutlined />, title: 'Cập nhật tức thì', text: 'Khách nhận thông báo ngay khi phiếu đổi trạng thái' },
   { icon: <FileProtectOutlined />, title: 'Báo giá minh bạch', text: 'Khách xem và xác nhận báo giá trực tuyến' },
   { icon: <SafetyCertificateOutlined />, title: 'Bảo hành rõ ràng', text: 'Tra cứu bằng mã phiếu hoặc số serial' },
 ]
 
-/** Nền navy dùng chung cho panel thương hiệu (desktop) và dải tiêu đề (mobile). */
-const brandBg = 'bg-[radial-gradient(120%_80%_at_70%_20%,#0C4A6E_0%,#0B1220_55%,#070B14_100%)]'
+/** Nền navy dùng chung toàn trang công khai. */
+const brandBg = 'bg-[radial-gradient(110%_80%_at_25%_25%,#0C4A6E_0%,#0B1220_55%,#070B14_100%)]'
 
-/** Bố cục trang công khai: panel thương hiệu 3D (≥1024px) + vùng form. */
+/**
+ * Bố cục trang công khai: MỘT nền navy liền mạch (không chia đôi nền sáng/tối).
+ * Cột trái (≥1024px): mạch điện phát sáng + cảnh 3D anh thợ + điện thoại luôn chuyển động, tiêu đề, 3 thẻ tính năng; cột phải: thẻ form kính mờ.
+ */
 export function AuthLayout() {
   const screens = Grid.useBreakpoint()
-  const [paused, setPaused] = useState(() => localStorage.getItem(MOTION_KEY) === '1')
-  const togglePaused = () => {
-    setPaused((p) => {
-      localStorage.setItem(MOTION_KEY, p ? '0' : '1')
-      return !p
-    })
-  }
   return (
-    <div className={`grid min-h-screen bg-bg lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] ${paused ? 'rf-motion-paused' : ''}`}>
-      <aside className={`relative hidden overflow-hidden text-white lg:flex lg:flex-col ${brandBg}`}>
-        {/* Lưới mờ tạo cảm giác "bàn kỹ thuật" */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 opacity-[0.07] [background-image:linear-gradient(#fff_1px,transparent_1px),linear-gradient(90deg,#fff_1px,transparent_1px)] [background-size:48px_48px] [mask-image:radial-gradient(70%_60%_at_60%_40%,#000,transparent)]"
-        />
-        {/* Nền bo mạch phát sáng, xung chạy dọc đường mạch (nằm sau cảnh 3D) */}
-        <CircuitTraces className="pointer-events-none absolute inset-0 h-full w-full" />
-        {screens.lg && (
-          <Scene3DBoundary>
-            <Suspense fallback={null}>
-              <RepairScene3D className="absolute inset-0" paused={paused} />
-            </Suspense>
-          </Scene3DBoundary>
-        )}
-        {/* Lớp phủ: chỉ tối ở góc tiêu đề và dải thẻ phía dưới – không che anh thợ */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(55%_38%_at_0%_10%,rgb(7_11_20/0.85),transparent),linear-gradient(0deg,rgb(7_11_20/0.85)_0%,transparent_30%)]"
-        />
-
-        <div data-enter className="pointer-events-none relative z-10 flex h-full flex-col p-10 xl:p-14">
-          <div className="flex items-center justify-between">
-            <Link to="/login" className="pointer-events-auto flex w-fit items-center gap-3 text-white no-underline">
-              <img src="/favicon.svg" alt="" className="size-10" />
-              <span className="text-xl font-bold tracking-tight">RepairFlow</span>
-            </Link>
-            <MotionToggle paused={paused} onToggle={togglePaused} />
-          </div>
-
-          <div className="mt-10 max-w-md">
-            <p className="m-0 text-sm font-semibold tracking-[0.14em] text-sky-300 uppercase">Sửa chữa &amp; bảo hành thiết bị</p>
-            <h2 className="mt-3 mb-0 text-4xl leading-[1.15] font-bold tracking-tight xl:text-[44px]">
-              Mỗi chiếc máy, một quy trình <span className="text-sky-300">rõ ràng</span>.
-            </h2>
-          </div>
-
-          <ul className="mt-auto grid list-none gap-3 p-0 xl:grid-cols-3">
-            {FEATURES.map((f) => (
-              <li key={f.title} className="rf-feature pointer-events-auto rounded-2xl border border-white/10 bg-white/[0.06] p-4 backdrop-blur-md">
-                <span aria-hidden="true" className="mb-2 flex size-9 items-center justify-center rounded-xl bg-sky-400/15 text-lg text-sky-300">
-                  {f.icon}
-                </span>
-                <span className="block text-sm font-semibold">{f.title}</span>
-                <span className="mt-1 block text-[13px] leading-5 text-slate-300">{f.text}</span>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-6 mb-0 text-sm text-slate-400">© {CURRENT_YEAR} RepairFlow</p>
-        </div>
-      </aside>
-
-      <main className="flex min-h-screen flex-col bg-bg">
-        {/* Mobile/tablet: dải thương hiệu gọn thay cho panel 3D (tiết kiệm pin & dữ liệu) */}
-        <div className={`relative overflow-hidden lg:hidden ${brandBg} ${screens.sm ? 'h-60' : ''}`}>
-          {/* Màn hình vừa (640–1023px): dải 3D phía trên form; điện thoại nhỏ: chỉ logo để tiết kiệm pin */}
-          {screens.sm && !screens.lg && (
+    <div className={`relative min-h-screen text-white ${brandBg}`}>
+      {/* Mạch điện phát sáng quanh trang, xung sáng chạy dọc đường mạch */}
+      <CircuitTraces className="pointer-events-none fixed inset-0 h-full w-full" />
+      <div className="relative grid min-h-screen lg:grid-cols-[minmax(0,1fr)_minmax(440px,560px)]">
+        {/* ---------------- Cột trái: cảnh 3D ---------------- */}
+        <aside className="relative hidden overflow-hidden lg:flex lg:flex-col">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 opacity-[0.06] [background-image:linear-gradient(#fff_1px,transparent_1px),linear-gradient(90deg,#fff_1px,transparent_1px)] [background-size:48px_48px] [mask-image:radial-gradient(70%_60%_at_60%_45%,#000,transparent)]"
+          />
+          {screens.lg && (
             <Scene3DBoundary>
               <Suspense fallback={null}>
-                <RepairScene3D layout="banner" className="absolute inset-0" paused={paused} />
+                <RepairScene3D className="absolute inset-0" />
               </Suspense>
             </Scene3DBoundary>
           )}
-          <div className="relative z-10 flex items-center justify-between px-5 py-5">
-            <Link to="/login" className="flex w-fit items-center gap-2.5 text-white no-underline">
+          {/* Chỉ tối ở góc tiêu đề và mép dưới – không che anh thợ */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(55%_38%_at_0%_10%,rgb(7_11_20/0.85),transparent),linear-gradient(0deg,rgb(7_11_20/0.85)_0%,transparent_30%)]"
+          />
+
+          <div className="relative z-10 flex h-full flex-col p-10 xl:p-14">
+            <Link to="/login" className="flex w-fit items-center gap-3 text-white no-underline">
+              <img src="/favicon.svg" alt="" className="size-10" />
+              <span className="text-xl font-bold tracking-tight">RepairFlow</span>
+            </Link>
+            <div className="mt-10 max-w-md">
+              <p className="m-0 text-sm font-semibold tracking-[0.14em] text-sky-300 uppercase">Sửa chữa &amp; bảo hành thiết bị</p>
+              <h2 className="mt-3 mb-0 text-4xl leading-[1.15] font-bold tracking-tight xl:text-[44px]">
+                Mỗi chiếc máy, một quy trình <span className="text-sky-300">rõ ràng</span>.
+              </h2>
+            </div>
+            <ul className="mt-auto grid list-none gap-3 p-0 xl:grid-cols-3">
+              {FEATURES.map((f) => (
+                <li key={f.title} className="rounded-2xl border border-white/10 bg-white/[0.06] p-4 backdrop-blur-md">
+                  <span aria-hidden="true" className="mb-2 flex size-9 items-center justify-center rounded-xl bg-sky-400/15 text-lg text-sky-300">
+                    {f.icon}
+                  </span>
+                  <span className="block text-sm font-semibold">{f.title}</span>
+                  <span className="mt-1 block text-[13px] leading-5 text-slate-300">{f.text}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </aside>
+
+        {/* ---------------- Cột form ---------------- */}
+        <div className="flex min-h-screen flex-col px-5 py-6 sm:px-10 lg:py-10 lg:pr-10 lg:pl-4 xl:pr-14">
+          <div className="flex items-center justify-between gap-3 lg:justify-end">
+            <Link to="/login" className="flex w-fit items-center gap-2.5 text-white no-underline lg:hidden">
               <img src="/favicon.svg" alt="" className="size-9" />
               <span className="text-lg font-bold">RepairFlow</span>
             </Link>
-            {screens.sm && !screens.lg && <MotionToggle paused={paused} onToggle={togglePaused} />}
+            <ConfigProvider theme={antdPublicDarkTheme}>
+              <Link to="/warranty-check" className="no-underline">
+                <Button icon={<SafetyCertificateOutlined />}>Tra cứu bảo hành</Button>
+              </Link>
+            </ConfigProvider>
           </div>
-        </div>
-        {/* Desktop: thanh trên cùng – lối vào tra cứu bảo hành cho khách không có tài khoản */}
-        <div className="hidden items-center justify-end gap-3 px-10 pt-8 lg:flex">
-          <span className="text-sm text-text-secondary">Chỉ cần kiểm tra bảo hành?</span>
-          <Link to="/warranty-check" className="no-underline">
-            <Button icon={<SafetyCertificateOutlined />}>Tra cứu bảo hành</Button>
-          </Link>
-        </div>
-        <div className="flex flex-1 items-center justify-center bg-[radial-gradient(rgb(15_23_42/0.06)_1px,transparent_1px)] [background-size:20px_20px] px-5 py-10 sm:px-10">
-          <div className="relative w-full max-w-[440px]">
-            <div data-enter className="rf-beam w-full rounded-2xl border border-border bg-surface p-6 shadow-[0_1px_2px_rgb(15_23_42/0.04),0_12px_32px_-12px_rgb(15_23_42/0.14)] sm:p-9">
-              <Outlet />
+
+          <main className="flex flex-1 items-center justify-center py-8">
+            <div className="rf-glass-card w-full max-w-[460px] rounded-3xl p-6 sm:p-9">
+              <ConfigProvider theme={antdPublicDarkTheme}>
+                <div className="rf-dark">
+                  <Outlet />
+                </div>
+              </ConfigProvider>
             </div>
-          </div>
+          </main>
+
+          <footer className="text-center text-xs text-slate-500">© {CURRENT_YEAR} RepairFlow</footer>
         </div>
-        <footer className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 px-5 pb-6 text-xs text-text-muted">
-          <span>© {CURRENT_YEAR} RepairFlow</span>
-          <span aria-hidden="true">·</span>
-          <span>Quản lý sửa chữa &amp; bảo hành thiết bị</span>
-        </footer>
-      </main>
+      </div>
     </div>
   )
 }

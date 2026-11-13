@@ -19,7 +19,10 @@ public record AuthProperties(
         @NotNull Duration loginLockDuration,
         @NotNull Duration passwordResetTtl,
         @NotBlank String frontendUrl,
-        boolean logResetLinks) {
+        boolean logResetLinks,
+        @NotNull Duration registrationCodeTtl,
+        @Min(1) int registrationCodeIpLimit,
+        @NotBlank String mailFrom) {
 
     public static final String REFRESH_COOKIE = "rf_refresh";
     public static final String REFRESH_COOKIE_PATH = "/api/v1/auth";

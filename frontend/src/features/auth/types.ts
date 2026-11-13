@@ -33,6 +33,15 @@ export interface RegisterRequest {
   phone: string
   password: string
   address?: string
+  /** Mã 6 số gửi tới email ở bước 1 (POST /auth/register/send-code) */
+  verificationCode: string
+}
+
+export interface SendRegistrationCodeResponse {
+  /** Số giây mã còn hiệu lực */
+  expiresIn: number
+  /** Số giây phải chờ trước khi gửi lại */
+  resendAfter: number
 }
 
 export interface UpdateProfileRequest {
@@ -52,4 +61,19 @@ export interface ForgotPasswordRequest {
 export interface ResetPasswordRequest {
   token: string
   newPassword: string
+}
+
+export type SocialProvider = 'google' | 'facebook'
+
+export interface PendingSocialSignup {
+  provider: SocialProvider
+  email: string
+  fullName: string
+}
+
+export interface CompleteSocialSignupRequest {
+  fullName: string
+  phone: string
+  address?: string
+  verificationCode: string
 }
