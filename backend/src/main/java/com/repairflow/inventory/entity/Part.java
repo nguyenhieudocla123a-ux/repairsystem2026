@@ -3,14 +3,21 @@ package com.repairflow.inventory.entity;
 import com.repairflow.common.audit.BaseEntity;
 import com.repairflow.common.exception.BusinessException;
 import com.repairflow.common.exception.ErrorCode;
+import com.repairflow.device.entity.DeviceType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import java.math.BigDecimal;
+import java.time.Instant;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -33,7 +40,30 @@ public class Part extends BaseEntity {
     @Column(nullable = false)
     private String name;
 
-    private String category;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    private PartCategory category;
+
+    /** null = dùng chung nhiều loại thiết bị */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "device_type")
+    private DeviceType deviceType;
+
+    @Enumerated(EnumType.STRING)
+    private PartGrade grade;
+
+    private String brand;
+
+    @Column(name = "compatible_models")
+    private String compatibleModels;
+
+    /** Lần cập nhật ảnh gần nhất; null = chưa có ảnh thật (frontend dùng ảnh mặc định của nhóm). */
+    @Column(name = "image_updated_at")
+    private Instant imageUpdatedAt;
+
+    /** Bảo hành riêng của linh kiện; null = theo nhóm. */
+    @Column(name = "warranty_months")
+    private Integer warrantyMonths;
 
     @Column(nullable = false)
     private String unit = "cái";
@@ -79,6 +109,14 @@ public class Part extends BaseEntity {
                     "Linh kiện " + sku + " chỉ còn " + quantityOnHand + ", không đủ để xuất " + quantity);
         }
         this.quantityOnHand -= quantity;
+    }
+
+    /** Số tháng bảo hành áp dụng: riêng của linh kiện → mặc định của nhóm → 0 (chưa phân nhóm). */
+    public int effectiveWarrantyMonths() {
+        if (warrantyMonths != null) {
+            return warrantyMonths;
+        }
+        return category == null ? 0 : category.getDefaultWarrantyMonths();
     }
 
     public boolean isLowStock() {

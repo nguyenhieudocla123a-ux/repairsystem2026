@@ -11,8 +11,8 @@ const base: Quotation = {
   versionNo: 1,
   status: 'DRAFT',
   items: [
-    { id: 1, itemType: 'PART', partId: 7, partSku: 'LCD-IP13', description: 'Màn hình OLED', quantity: 1, unitPrice: 2500000, lineTotal: 2500000 },
-    { id: 2, itemType: 'LABOR', partId: null, partSku: null, description: 'Công thay', quantity: 1, unitPrice: 300000, lineTotal: 300000 },
+    { id: 1, itemType: 'PART', partId: 7, partSku: 'LCD-IP13', description: 'Màn hình OLED', quantity: 1, unitPrice: 2500000, lineTotal: 2500000, partGrade: null, warrantyMonths: null },
+    { id: 2, itemType: 'LABOR', partId: null, partSku: null, description: 'Công thay', quantity: 1, unitPrice: 300000, lineTotal: 300000, partGrade: null, warrantyMonths: null },
   ],
   laborTotal: 300000,
   partsTotal: 2500000,

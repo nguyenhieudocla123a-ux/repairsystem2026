@@ -39,6 +39,7 @@ describe('PublicWarrantyCheckPage', () => {
       endDate: '2027-02-01',
       valid: true,
       daysRemaining: 81,
+      items: [{ description: "Màn hình OLED", endDate: "2027-05-01", valid: true }],
     })
     renderWithProviders(<PublicWarrantyCheckPage />)
     fireEvent.change(screen.getByRole('textbox', { name: /Mã bảo hành/ }), { target: { value: 'WR-2026-000001' } })

@@ -40,6 +40,11 @@ public class WarrantyClaim extends BaseEntity {
     @JoinColumn(name = "warranty_id", nullable = false, updatable = false)
     private Warranty warranty;
 
+    /** Dòng (linh kiện) khách báo lỗi – kiểm tra theo hạn của chính dòng này. null = yêu cầu cũ trước V9. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "warranty_item_id")
+    private WarrantyItem warrantyItem;
+
     @Column(name = "issue_description", nullable = false, columnDefinition = "text")
     private String issueDescription;
 

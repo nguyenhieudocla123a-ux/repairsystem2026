@@ -15,14 +15,20 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.BatchSize;
 
 @Entity
 @Table(name = "warranties")
@@ -76,6 +82,12 @@ public class Warranty extends BaseEntity {
     @Version
     private Long version;
 
+    /** Bảo hành theo từng linh kiện / dịch vụ (V9). Hạn của cả phiếu = dòng có hạn dài nhất. */
+    @OneToMany(mappedBy = "warranty", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 50)
+    @OrderBy("endDate DESC, id ASC")
+    private List<WarrantyItem> items = new ArrayList<>();
+
     public Warranty(String code, RepairOrder repairOrder, LocalDate startDate, int months, User createdBy) {
         this.code = code;
         this.repairOrder = repairOrder;
@@ -85,6 +97,16 @@ public class Warranty extends BaseEntity {
         this.months = months;
         this.endDate = startDate.plusMonths(months);
         this.createdBy = createdBy;
+    }
+
+    /** Thêm một dòng bảo hành (hạn tính từ ngày bắt đầu) và kéo dài hạn của phiếu nếu cần. */
+    public WarrantyItem addItem(WarrantyItem item) {
+        items.add(item);
+        if (item.getMonths() > months) {
+            months = item.getMonths();
+            endDate = startDate.plusMonths(months);
+        }
+        return item;
     }
 
     /** Còn hiệu lực tại ngày {@code today}: chưa bị hủy và chưa quá ngày kết thúc. */

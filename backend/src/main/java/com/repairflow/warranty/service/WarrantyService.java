@@ -48,6 +48,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import com.repairflow.warranty.entity.WarrantyItem;
 
 /**
  * Bảo hành: tra cứu (nội bộ / khách / công khai), hủy bảo hành, yêu cầu bảo hành.
@@ -149,18 +150,21 @@ public class WarrantyService {
 
     /** STAFF tiếp nhận tại quầy, hoặc khách gửi online cho bảo hành của mình. */
     @Transactional
-    public WarrantyClaimResponse createClaim(Long warrantyId, String issue, AuthenticatedUser actor) {
+    public WarrantyClaimResponse createClaim(Long warrantyId, Long itemId, String issue, AuthenticatedUser actor) {
         Warranty w = loadVisible(warrantyId, actor);
         if (!w.isValidOn(today())) {
             throw BusinessException.conflict(w.getStatus() == WarrantyStatus.VOID
                     ? "Bảo hành đã bị hủy: " + w.getVoidReason()
                     : "Bảo hành đã hết hạn ngày " + w.getEndDate());
         }
+        WarrantyItem item = resolveItem(w, itemId);
         if (claimRepository.existsByWarrantyIdAndStatusIn(warrantyId, OPEN_CLAIMS)) {
             throw BusinessException.conflict("Bảo hành này đang có một yêu cầu chưa xử lý xong");
         }
-        WarrantyClaim claim = claimRepository.save(new WarrantyClaim(codeGenerator.next(CodeType.WARRANTY_CLAIM), w,
-                issue.trim(), entityManager.getReference(User.class, actor.id())));
+        WarrantyClaim newClaim = new WarrantyClaim(codeGenerator.next(CodeType.WARRANTY_CLAIM), w,
+                issue.trim(), entityManager.getReference(User.class, actor.id()));
+        newClaim.setWarrantyItem(item);
+        WarrantyClaim claim = claimRepository.save(newClaim);
         events.publishEvent(new WarrantyClaimCreated(claim.getId(), actor.id()));
         return WarrantyClaimResponse.from(claim);
     }
@@ -176,10 +180,12 @@ public class WarrantyService {
     public WarrantyClaimResponse accept(Long claimId, AcceptClaimRequest request, AuthenticatedUser actor) {
         WarrantyClaim claim = loadSubmitted(claimId);
         Warranty w = claim.getWarranty();
-        if (!w.isValidOn(today())) {
+        if (!w.isValidOn(today())
+                || (claim.getWarrantyItem() != null && !claim.getWarrantyItem().isValidOn(today()))) {
             throw BusinessException.conflict("Bảo hành đã hết hạn hoặc bị hủy, không thể chấp nhận");
         }
-        ReceptionInfo info = new ReceptionInfo("[Bảo hành " + w.getCode() + "] " + claim.getIssueDescription(),
+        String itemLabel = claim.getWarrantyItem() == null ? "" : " – " + claim.getWarrantyItem().getDescription();
+        ReceptionInfo info = new ReceptionInfo("[Bảo hành " + w.getCode() + itemLabel + "] " + claim.getIssueDescription(),
                 request.deviceCondition(), null, request.priority() == null ? RepairPriority.HIGH : request.priority(),
                 null, request.technicianId());
         RepairOrder order = repairOrderService.openWarrantyRepair(w.getCustomer(), w.getDevice(), info, actor,
@@ -200,6 +206,25 @@ public class WarrantyService {
         claim.setHandledBy(entityManager.getReference(User.class, actor.id()));
         claim.setResolvedAt(clock.instant());
         return WarrantyClaimResponse.from(claim);
+    }
+
+    /**
+     * Dòng bảo hành khách báo lỗi. Phiếu có nhiều dòng thì bắt buộc chọn (mỗi linh kiện một hạn riêng);
+     * dòng phải thuộc đúng phiếu và còn hạn.
+     */
+    private WarrantyItem resolveItem(Warranty w, Long itemId) {
+        if (itemId == null) {
+            if (w.getItems().size() > 1) {
+                throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Vui lòng chọn linh kiện / dịch vụ cần bảo hành");
+            }
+            return w.getItems().isEmpty() ? null : w.getItems().get(0);
+        }
+        WarrantyItem item = w.getItems().stream().filter(i -> i.getId().equals(itemId)).findFirst()
+                .orElseThrow(() -> BusinessException.notFound("Dòng bảo hành", itemId));
+        if (!item.isValidOn(today())) {
+            throw BusinessException.conflict("\"" + item.getDescription() + "\" đã hết bảo hành ngày " + item.getEndDate());
+        }
+        return item;
     }
 
     private WarrantyClaim loadSubmitted(Long claimId) {

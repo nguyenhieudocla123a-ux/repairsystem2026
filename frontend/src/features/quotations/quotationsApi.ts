@@ -2,6 +2,7 @@ import { http } from '@/services/http'
 import type { PageQuery, PageResponse } from '@/types/api'
 import type { QuotationStatus } from '@/types/enums'
 import { cleanParams } from '@/utils/params'
+import type { PartGrade } from '@/features/inventory/inventoryApi'
 
 /** Kiểu khớp QuotationDtos.java – docs/api-specification.md §8 */
 export type QuotationItemType = 'LABOR' | 'PART'
@@ -15,6 +16,9 @@ export interface QuotationItem {
   quantity: number
   unitPrice: number
   lineTotal: number
+  /** Loại linh kiện + số tháng bảo hành đã báo cho khách (chỉ dòng linh kiện) */
+  partGrade: PartGrade | null
+  warrantyMonths: number | null
 }
 
 export interface Quotation {

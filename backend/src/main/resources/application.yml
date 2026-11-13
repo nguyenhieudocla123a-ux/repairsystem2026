@@ -111,4 +111,5 @@ app:
       client-id: ${FACEBOOK_CLIENT_ID:}
       client-secret: ${FACEBOOK_CLIENT_SECRET:}
   demo:
+    inventory: ${DEMO_INVENTORY:true}            # dev: kho linh kiện mẫu SKU DEMO-* (false = không tạo)
     password: ${DEMO_USER_PASSWORD:}             # dev: mật khẩu cho 4 tài khoản demo (để trống = không tạo)

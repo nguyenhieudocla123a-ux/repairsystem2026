@@ -9,7 +9,10 @@ import com.repairflow.config.CacheConfig;
 import com.repairflow.inventory.dto.InventoryDtos.PartOption;
 import com.repairflow.inventory.dto.InventoryDtos.PartRequest;
 import com.repairflow.inventory.dto.InventoryDtos.PartResponse;
+import com.repairflow.device.entity.DeviceType;
 import com.repairflow.inventory.entity.Part;
+import com.repairflow.inventory.entity.PartCategory;
+import com.repairflow.inventory.repository.PartCategoryRepository;
 import com.repairflow.inventory.repository.PartRepository;
 import com.repairflow.security.AuthenticatedUser;
 import com.repairflow.user.entity.Role;
@@ -28,6 +31,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import com.repairflow.inventory.dto.InventoryDtos.ImportRequest;
 
 /** Danh mục linh kiện. Tồn kho KHÔNG sửa trực tiếp ở đây – chỉ thay đổi qua InventoryService (luôn có sổ kho). */
 @Service
@@ -37,14 +41,16 @@ public class PartService {
     private static final Set<String> SORTABLE = Set.of("name", "sku", "quantityOnHand", "sellingPrice", "createdAt");
 
     private final PartRepository repository;
+    private final PartCategoryRepository categoryRepository;
+    private final InventoryService inventoryService;
     private final AuditService auditService;
 
     @Transactional(readOnly = true)
-    public PageResponse<PartResponse> search(String keyword, String category, Boolean lowStock, Boolean active,
-                                             AuthenticatedUser user, Pageable pageable) {
+    public PageResponse<PartResponse> search(String keyword, Long categoryId, DeviceType deviceType, Boolean lowStock,
+                                             Boolean active, AuthenticatedUser user, Pageable pageable) {
         Pageable page = PageRequests.withAllowedSort(pageable, SORTABLE, Sort.by("name"));
         boolean includeCost = canSeeCost(user);
-        return PageResponse.of(repository.findAll(filter(keyword, category, lowStock, active), page),
+        return PageResponse.of(repository.findAll(filter(keyword, categoryId, deviceType, lowStock, active), page),
                 p -> PartResponse.from(p, includeCost));
     }
 
@@ -55,25 +61,27 @@ public class PartService {
     }
 
     @Transactional(readOnly = true)
-    public List<String> categories() {
-        return repository.findCategories();
-    }
-
-    @Transactional(readOnly = true)
     public PartResponse get(Long id, AuthenticatedUser user) {
-        return PartResponse.from(load(id), canSeeCost(user));
+        return PartResponse.from(repository.findWithCategoryById(id)
+                .orElseThrow(() -> BusinessException.notFound("Linh kiện", id)), canSeeCost(user));
     }
 
     @Transactional
     @CacheEvict(cacheNames = CacheConfig.PART_OPTIONS, allEntries = true)
-    public PartResponse create(PartRequest request) {
+    public PartResponse create(PartRequest request, AuthenticatedUser actor) {
         String sku = request.sku().trim().toUpperCase(Locale.ROOT);
         if (repository.existsBySkuIgnoreCase(sku)) {
             throw new BusinessException(ErrorCode.DUPLICATE_RESOURCE, "Mã SKU " + sku + " đã tồn tại");
         }
         Part part = new Part(sku, request.name().trim());
         apply(part, request);
-        return PartResponse.from(repository.save(part), true);
+        repository.save(part);
+        if (request.initialQuantity() != null && request.initialQuantity() > 0) {
+            // Tồn đầu kỳ đi qua đúng luồng nhập kho → có dòng sổ kho, tồn kho luôn đối soát được (cùng transaction)
+            return inventoryService.importStock(part.getId(), new ImportRequest(request.initialQuantity(),
+                    request.costPrice(), request.supplierName(), "Tồn đầu kỳ khi tạo linh kiện"), actor);
+        }
+        return PartResponse.from(part, true);
     }
 
     @Transactional
@@ -116,22 +124,41 @@ public class PartService {
     }
 
     private void apply(Part part, PartRequest r) {
-        part.setCategory(StringUtils.hasText(r.category()) ? r.category().trim() : null);
+        PartCategory category = categoryRepository.findById(r.categoryId())
+                .orElseThrow(() -> BusinessException.notFound("Nhóm linh kiện", r.categoryId()));
+        if (!category.isActive() && (part.getCategory() == null || !category.getId().equals(part.getCategory().getId()))) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Nhóm \"" + category.getName() + "\" đã ngừng sử dụng");
+        }
+        if (!category.appliesTo(r.deviceType())) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED,
+                    "Nhóm \"" + category.getName() + "\" không dùng cho loại thiết bị đã chọn");
+        }
+        part.setCategory(category);
+        part.setDeviceType(r.deviceType());
+        part.setGrade(r.grade());
+        part.setBrand(StringUtils.hasText(r.brand()) ? r.brand().trim() : null);
+        part.setCompatibleModels(StringUtils.hasText(r.compatibleModels()) ? r.compatibleModels().trim() : null);
+        part.setWarrantyMonths(r.warrantyMonths());
         part.setUnit(r.unit().trim());
         part.setCostPrice(r.costPrice());
         part.setSellingPrice(r.sellingPrice());
         part.setMinStockLevel(r.minStockLevel());
     }
 
-    private static Specification<Part> filter(String keyword, String category, Boolean lowStock, Boolean active) {
+    private static Specification<Part> filter(String keyword, Long categoryId, DeviceType deviceType, Boolean lowStock,
+                                              Boolean active) {
         return (root, query, cb) -> {
             List<Predicate> p = new ArrayList<>();
             if (StringUtils.hasText(keyword)) {
                 String like = "%" + keyword.trim().toLowerCase(Locale.ROOT) + "%";
                 p.add(cb.or(cb.like(cb.lower(root.get("name")), like), cb.like(cb.lower(root.get("sku")), like)));
             }
-            if (StringUtils.hasText(category)) {
-                p.add(cb.equal(root.get("category"), category));
+            if (categoryId != null) {
+                p.add(cb.equal(root.get("category").get("id"), categoryId));
+            }
+            if (deviceType != null) {
+                // Linh kiện đúng loại thiết bị hoặc dùng chung (device_type null)
+                p.add(cb.or(cb.equal(root.get("deviceType"), deviceType), cb.isNull(root.get("deviceType"))));
             }
             if (Boolean.TRUE.equals(lowStock)) {
                 p.add(cb.lessThanOrEqualTo(root.get("quantityOnHand"), root.<Integer>get("minStockLevel")));

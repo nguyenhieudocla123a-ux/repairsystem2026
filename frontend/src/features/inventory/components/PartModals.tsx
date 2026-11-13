@@ -1,23 +1,35 @@
+import { CameraOutlined, DeleteOutlined } from '@ant-design/icons'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Alert, App, AutoComplete, Form, Input, InputNumber, Modal } from 'antd'
-import { useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { Alert, App, Button, Form, Input, InputNumber, Modal, Select } from 'antd'
+import { useRef, useState } from 'react'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { FormField } from '@/components/form/FormField'
 import { MoneyText } from '@/components/MoneyText'
+import { DEVICE_TYPE_LABELS } from '@/features/devices/devicesApi'
+import type { DeviceType } from '@/types/enums'
 import { getErrorMessage } from '@/utils/errors'
 import { applyApiFieldErrors } from '@/utils/formErrors'
-import { inventoryApi, type PartResponse } from '../inventoryApi'
+import { AVATAR_ACCEPT, prepareAvatar } from '@/utils/image'
+import { PART_GRADE_OPTIONS, inventoryApi, type PartCategory, type PartGrade, type PartResponse } from '../inventoryApi'
+import { PartImage } from './PartImage'
 
 const money = z.number({ error: 'Vui lòng nhập số tiền' }).min(0, 'Không được âm')
 const partSchema = z.object({
   sku: z.string().trim().min(1, 'Vui lòng nhập SKU').max(50).regex(/^[A-Za-z0-9\-_.]+$/, 'SKU chỉ gồm chữ, số và - _ .'),
   name: z.string().trim().min(1, 'Vui lòng nhập tên').max(200),
-  category: z.string().max(100),
+  categoryId: z.number({ error: 'Vui lòng chọn nhóm linh kiện' }),
+  deviceType: z.string().nullable(),
+  grade: z.string({ error: 'Vui lòng chọn loại linh kiện' }).min(1, 'Vui lòng chọn loại linh kiện'),
+  brand: z.string().trim().max(100),
+  compatibleModels: z.string().trim().max(500),
+  warrantyMonths: z.number().int().min(0).max(120).nullable(),
   unit: z.string().trim().min(1, 'Vui lòng nhập đơn vị').max(20),
   costPrice: money,
   sellingPrice: money,
   minStockLevel: z.number({ error: 'Vui lòng nhập số' }).int().min(0, 'Không được âm'),
+  initialQuantity: z.number().int().min(0, 'Không được âm').max(100000),
+  supplierName: z.string().trim().max(150),
 })
 type PartForm = z.infer<typeof partSchema>
 
@@ -33,53 +45,181 @@ const moneyInput = (props: { value?: number; onChange: (v: number | null) => voi
   />
 )
 
-/** Tạo / sửa linh kiện. Mount theo key mỗi lần mở (TD-40). */
-export function PartFormModal({ part, categories, onClose, onSaved }: { part?: PartResponse; categories: string[]; onClose: () => void; onSaved: () => void }) {
+const DEVICE_TYPES = Object.keys(DEVICE_TYPE_LABELS) as DeviceType[]
+
+/** Tạo / sửa linh kiện: nhóm, loại thiết bị, loại linh kiện, bảo hành, ảnh. Mount theo key mỗi lần mở (TD-40). */
+export function PartFormModal({ part, preset, categories, onClose, onSaved }: {
+  part?: PartResponse
+  /** Thêm từ thẻ loại linh kiện: điền sẵn nhóm (+ loại thiết bị đang lọc) */
+  preset?: { categoryId: number; deviceType?: DeviceType | null }
+  categories: PartCategory[]
+  onClose: () => void
+  onSaved: () => void
+}) {
   const { message } = App.useApp()
   const [formError, setFormError] = useState<string | null>(null)
+  /** Ảnh mới chọn (đã nén ở trình duyệt) – tải lên sau khi lưu linh kiện */
+  const [image, setImage] = useState<{ blob: Blob; url: string } | null>(null)
+  const [removeImage, setRemoveImage] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
   const { control, handleSubmit, setError, formState } = useForm<PartForm>({
     resolver: zodResolver(partSchema),
     defaultValues: {
       sku: part?.sku ?? '',
       name: part?.name ?? '',
-      category: part?.category ?? '',
+      categoryId: part?.categoryId ?? preset?.categoryId ?? (undefined as unknown as number),
+      deviceType: part?.deviceType ?? preset?.deviceType ?? null,
+      grade: part?.grade ?? '',
+      brand: part?.brand ?? '',
+      compatibleModels: part?.compatibleModels ?? '',
+      warrantyMonths: part?.warrantyMonths ?? null,
       unit: part?.unit ?? 'cái',
       costPrice: part?.costPrice ?? 0,
       sellingPrice: part?.sellingPrice ?? 0,
       minStockLevel: part?.minStockLevel ?? 1,
+      initialQuantity: 0,
+      supplierName: '',
     },
   })
+  const deviceType = useWatch({ control, name: 'deviceType' }) as DeviceType | null
+  const categoryId = useWatch({ control, name: 'categoryId' })
+  const category = categories.find((c) => c.id === categoryId)
+  const usable = categories.filter((c) => (c.active || c.id === part?.categoryId) && (!deviceType || c.deviceTypes.includes(deviceType)))
+
+  const pickImage = async (file: File | undefined) => {
+    if (!file) return
+    try {
+      const blob = await prepareAvatar(file, 640)
+      if (image) URL.revokeObjectURL(image.url)
+      setImage({ blob, url: URL.createObjectURL(blob) })
+      setRemoveImage(false)
+    } catch (e) {
+      message.error(getErrorMessage(e))
+    }
+  }
+
   const onSubmit = handleSubmit(async (v) => {
     setFormError(null)
     try {
-      const body = { ...v, category: v.category || undefined, version: part?.version }
-      if (part) await inventoryApi.update(part.id, body)
-      else await inventoryApi.create(body)
+      const body = {
+        ...v,
+        grade: v.grade as PartGrade,
+        deviceType: v.deviceType as DeviceType | null,
+        brand: v.brand || undefined,
+        compatibleModels: v.compatibleModels || undefined,
+        // Số lượng ban đầu chỉ khi tạo mới – sửa tồn kho sau này đi qua Nhập kho / Kiểm kê (có sổ kho)
+        initialQuantity: part ? undefined : v.initialQuantity,
+        supplierName: part || !v.supplierName ? undefined : v.supplierName,
+        version: part?.version,
+      }
+      const saved = part ? await inventoryApi.update(part.id, body) : await inventoryApi.create(body)
+      if (image) await inventoryApi.uploadImage(saved.id, image.blob)
+      else if (removeImage && part?.imageUpdatedAt) await inventoryApi.deleteImage(saved.id)
       message.success(part ? 'Đã cập nhật linh kiện' : 'Đã thêm linh kiện')
       onSaved()
     } catch (e) {
       if (!applyApiFieldErrors(e, setError, Object.keys(partSchema.shape))) setFormError(getErrorMessage(e))
     }
   })
+
+  const hasOwnImage = !!image || (!!part?.imageUpdatedAt && !removeImage)
   return (
-    <Modal open title={part ? `Sửa linh kiện ${part.sku}` : 'Thêm linh kiện'} okText="Lưu" cancelText="Hủy" onOk={onSubmit} onCancel={onClose} confirmLoading={formState.isSubmitting} maskClosable={false}>
+    <Modal open width={720} title={part ? `Sửa linh kiện ${part.sku}` : 'Thêm linh kiện'} okText="Lưu" cancelText="Hủy" onOk={onSubmit} onCancel={onClose} confirmLoading={formState.isSubmitting} maskClosable={false}>
       {formError && <Alert type="error" showIcon title={formError} className="mb-4" role="alert" />}
-      {!part && <p className="mt-0 text-sm text-text-secondary">Tồn kho ban đầu = 0. Dùng "Nhập kho" để thêm số lượng (có ghi sổ kho).</p>}
+      {part && <p className="mt-0 text-sm text-text-secondary">Tồn kho hiện tại: <strong className="text-text">{part.quantityOnHand} {part.unit}</strong> – thay đổi bằng "Nhập kho" hoặc "Điều chỉnh kiểm kê" (có ghi sổ kho).</p>}
       <Form layout="vertical" component="div">
-        <div className="grid gap-x-4 sm:grid-cols-[1fr_2fr]">
-          <FormField control={control} name="sku" label="Mã SKU" required render={(f) => <Input {...f} placeholder="LCD-IP13" />} />
-          <FormField control={control} name="name" label="Tên linh kiện" required render={(f) => <Input {...f} />} />
+        <div className="grid gap-x-5 sm:grid-cols-[160px_1fr]">
+          {/* Ảnh linh kiện */}
+          <div className="mb-4 flex flex-col items-center gap-2">
+            {image ? (
+              <img src={image.url} alt="Ảnh linh kiện mới chọn" className="size-36 rounded-xl object-cover ring-1 ring-black/10" />
+            ) : (
+              <PartImage partId={part?.id} categoryCode={category?.code ?? part?.categoryCode} version={removeImage ? null : part?.imageUpdatedAt} size={144} className="rounded-xl" alt="Ảnh linh kiện" />
+            )}
+            <span className="text-center text-xs text-text-muted">{hasOwnImage ? 'Ảnh của linh kiện' : 'Ảnh mặc định theo nhóm'}</span>
+            <input ref={fileRef} type="file" accept={AVATAR_ACCEPT} className="hidden" aria-hidden="true" tabIndex={-1} onChange={(e) => { void pickImage(e.target.files?.[0]); e.target.value = '' }} />
+            <div className="flex gap-1">
+              <Button size="small" icon={<CameraOutlined />} onClick={() => fileRef.current?.click()}>{hasOwnImage ? 'Đổi ảnh' : 'Tải ảnh'}</Button>
+              {hasOwnImage && (
+                <Button size="small" danger icon={<DeleteOutlined />} aria-label="Bỏ ảnh"
+                  onClick={() => { if (image) { URL.revokeObjectURL(image.url); setImage(null) } else setRemoveImage(true) }} />
+              )}
+            </div>
+          </div>
+
+          <div>
+            <div className="grid gap-x-4 sm:grid-cols-[1fr_2fr]">
+              <FormField control={control} name="sku" label="Mã SKU" required render={(f) => <Input {...f} value={String(f.value ?? "")} placeholder="LCD-IP13" />} />
+              <FormField control={control} name="name" label="Tên linh kiện" required render={(f) => <Input {...f} value={String(f.value ?? "")} placeholder="Màn hình iPhone 13" />} />
+            </div>
+            <div className="grid gap-x-4 sm:grid-cols-2">
+              <Controller
+                control={control}
+                name="deviceType"
+                render={({ field }) => (
+                  <Form.Item label="Dùng cho thiết bị" htmlFor="deviceType">
+                    <Select id="deviceType" value={field.value ?? '__ALL__'} onChange={(v) => field.onChange(v === '__ALL__' ? null : v)}
+                      options={[{ value: '__ALL__', label: 'Dùng chung' }, ...DEVICE_TYPES.map((t) => ({ value: t, label: DEVICE_TYPE_LABELS[t] }))]} />
+                  </Form.Item>
+                )}
+              />
+              <Controller
+                control={control}
+                name="categoryId"
+                render={({ field, fieldState }) => (
+                  <Form.Item label="Nhóm linh kiện" required htmlFor="categoryId" validateStatus={fieldState.error ? 'error' : undefined} help={fieldState.error?.message}>
+                    <Select id="categoryId" showSearch optionFilterProp="label" placeholder="Chọn nhóm" value={field.value} onChange={field.onChange}
+                      options={usable.map((c) => ({ value: c.id, label: c.name }))} />
+                  </Form.Item>
+                )}
+              />
+            </div>
+            <div className="grid gap-x-4 sm:grid-cols-2">
+              <Controller
+                control={control}
+                name="grade"
+                render={({ field, fieldState }) => (
+                  <Form.Item label="Loại linh kiện" required htmlFor="grade" validateStatus={fieldState.error ? 'error' : undefined} help={fieldState.error?.message}>
+                    <Select id="grade" placeholder="Chính hãng / zin / thay thế" value={field.value || undefined} onChange={field.onChange} options={PART_GRADE_OPTIONS} />
+                  </Form.Item>
+                )}
+              />
+              <FormField control={control} name="brand" label="Thương hiệu" render={(f) => <Input {...f} value={String(f.value ?? "")} placeholder="Apple, GENA, Pisen…" />} />
+            </div>
+            <FormField control={control} name="compatibleModels" label="Model tương thích" render={(f) => <Input {...f} value={String(f.value ?? "")} placeholder="iPhone 13, iPhone 13 Pro" />} />
+            <Controller
+              control={control}
+              name="warrantyMonths"
+              render={({ field }) => (
+                <Form.Item label="Bảo hành (tháng)" htmlFor="warrantyMonths"
+                  extra={category ? `Để trống = theo nhóm "${category.name}": ${category.defaultWarrantyMonths === 0 ? 'không bảo hành' : `${category.defaultWarrantyMonths} tháng`}` : 'Để trống = theo nhóm'}>
+                  <InputNumber id="warrantyMonths" className="!w-full" min={0} max={120} value={field.value} onChange={(v) => field.onChange(v ?? null)}
+                    placeholder={category ? String(category.defaultWarrantyMonths) : 'Theo nhóm'} addonAfter="tháng" />
+                </Form.Item>
+              )}
+            />
+          </div>
         </div>
-        <div className="grid gap-x-4 sm:grid-cols-[2fr_1fr]">
-          <FormField
-            control={control}
-            name="category"
-            label="Danh mục"
-            render={(f) => <AutoComplete {...f} options={categories.map((c) => ({ value: c }))} placeholder="Màn hình, Pin, Bo mạch..." filterOption />}
-          />
-          <FormField control={control} name="unit" label="Đơn vị" required render={(f) => <Input {...f} />} />
-        </div>
-        <div className="grid gap-x-4 sm:grid-cols-3">
+
+        {!part && (
+          <div className="mb-1 rounded-lg bg-tone-success-bg/60 px-4 pt-3">
+            <div className="mb-2 text-sm font-medium text-tone-success-fg">Nhập kho ban đầu (ghi vào sổ kho là "Tồn đầu kỳ", giá = giá nhập)</div>
+            <div className="grid gap-x-4 sm:grid-cols-2">
+              <Controller
+                control={control}
+                name="initialQuantity"
+                render={({ field, fieldState }) => (
+                  <Form.Item label="Số lượng ban đầu" htmlFor="initialQuantity" validateStatus={fieldState.error ? 'error' : undefined} help={fieldState.error?.message}>
+                    <InputNumber id="initialQuantity" className="!w-full" min={0} max={100000} value={field.value} onChange={(v) => field.onChange(v ?? 0)} />
+                  </Form.Item>
+                )}
+              />
+              <FormField control={control} name="supplierName" label="Nhà cung cấp" render={(f) => <Input {...f} value={String(f.value ?? '')} placeholder="Không bắt buộc" />} />
+            </div>
+          </div>
+        )}
+        <div className="grid gap-x-4 sm:grid-cols-4">
+          <FormField control={control} name="unit" label="Đơn vị" required render={(f) => <Input {...f} value={String(f.value ?? "")} />} />
           {(['costPrice', 'sellingPrice'] as const).map((name) => (
             <Controller
               key={name}
@@ -96,7 +236,7 @@ export function PartFormModal({ part, categories, onClose, onSaved }: { part?: P
             control={control}
             name="minStockLevel"
             render={({ field, fieldState }) => (
-              <Form.Item label="Tồn tối thiểu" htmlFor="minStockLevel" extra="Cảnh báo khi tồn ≤ mức này" validateStatus={fieldState.error ? 'error' : undefined} help={fieldState.error?.message}>
+              <Form.Item label="Tồn tối thiểu" htmlFor="minStockLevel" validateStatus={fieldState.error ? 'error' : undefined} help={fieldState.error?.message}>
                 <InputNumber id="minStockLevel" className="!w-full" min={0} value={field.value} onChange={(v) => field.onChange(v ?? 0)} />
               </Form.Item>
             )}

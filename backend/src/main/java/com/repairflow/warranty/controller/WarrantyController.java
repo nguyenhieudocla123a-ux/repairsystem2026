@@ -83,7 +83,7 @@ public class WarrantyController {
     @PostMapping("/warranties/{id}/claims")
     public ResponseEntity<WarrantyClaimResponse> createClaim(@PathVariable Long id, @Valid @RequestBody CreateClaimRequest request,
                                                              @AuthenticationPrincipal AuthenticatedUser user) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.createClaim(id, request.issueDescription(), user));
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.createClaim(id, request.warrantyItemId(), request.issueDescription(), user));
     }
 
     @PreAuthorize("hasAnyRole('ADMIN','STAFF')")

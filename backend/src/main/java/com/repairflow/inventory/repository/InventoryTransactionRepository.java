@@ -15,7 +15,7 @@ public interface InventoryTransactionRepository
         extends JpaRepository<InventoryTransaction, Long>, JpaSpecificationExecutor<InventoryTransaction> {
 
     @Override
-    @EntityGraph(attributePaths = {"part", "repairOrder", "createdBy"})
+    @EntityGraph(attributePaths = {"part", "part.category", "repairOrder", "createdBy"})
     Page<InventoryTransaction> findAll(Specification<InventoryTransaction> spec, Pageable pageable);
 
     /** Số lượng linh kiện đang dùng cho phiếu theo từng linh kiện: Σ EXPORT − Σ RETURN. */

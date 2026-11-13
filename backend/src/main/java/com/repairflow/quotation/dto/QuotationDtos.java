@@ -17,6 +17,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import com.repairflow.inventory.entity.PartGrade;
 
 /** DTO báo giá – docs/api-specification.md §8. */
 public final class QuotationDtos {
@@ -45,13 +46,15 @@ public final class QuotationDtos {
     public record RespondRequest(@Size(max = 2000) String note) {
     }
 
+    /** partGrade + warrantyMonths: loại linh kiện và thời hạn bảo hành của dòng – khách thấy trước khi duyệt. */
     public record QuotationItemResponse(Long id, QuotationItemType itemType, Long partId, String partSku,
-                                        String description, int quantity, BigDecimal unitPrice, BigDecimal lineTotal) {
+                                        String description, int quantity, BigDecimal unitPrice, BigDecimal lineTotal,
+                                        PartGrade partGrade, Integer warrantyMonths) {
 
         public static QuotationItemResponse from(QuotationItem i) {
             return new QuotationItemResponse(i.getId(), i.getItemType(), i.getPart() == null ? null : i.getPart().getId(),
                     i.getPart() == null ? null : i.getPart().getSku(), i.getDescription(), i.getQuantity(),
-                    i.getUnitPrice(), i.getLineTotal());
+                    i.getUnitPrice(), i.getLineTotal(), i.getPartGrade(), i.getWarrantyMonths());
         }
     }
 

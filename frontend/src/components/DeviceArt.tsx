@@ -1,6 +1,5 @@
 import type { ReactElement } from 'react'
 import type { DeviceType } from '@/types/enums'
-import type { PartKind } from './partKind'
 
 /**
  * Hình minh họa thiết bị & linh kiện (SVG tự vẽ, cùng một phong cách: khối bo tròn, nét mảnh, màu theo token).
@@ -103,118 +102,6 @@ export function DeviceArt({ type, size = 44, className = '' }: ArtProps & { type
     >
       <svg viewBox="0 0 64 64" width={size * 0.86} height={size * 0.86} fill="none">
         {DEVICE_DRAW[type](id)}
-      </svg>
-    </span>
-  )
-}
-
-// ------------------------------------------------------------------ Linh kiện
-
-const PART_DRAW: Record<PartKind, ReactElement> = {
-  screen: (
-    <>
-      <rect x="18" y="6" width="28" height="52" rx="5" fill="#0B1A2E" stroke={EDGE} strokeWidth="1.5" />
-      <path d="M33 6h13v18Z" fill="#fff" opacity=".1" />
-      <path d="M24 16l9 12-6 8 10 12" stroke={SKY} strokeWidth="1.4" opacity=".55" fill="none" />
-    </>
-  ),
-  battery: (
-    <>
-      <rect x="20" y="10" width="24" height="46" rx="4" fill="#0EA5E9" />
-      <rect x="27" y="6" width="10" height="5" rx="1.5" fill="#94A3B8" />
-      <path d="M34 20l-7 12h6l-3 12 8-14h-6l2-10Z" fill="#fff" />
-    </>
-  ),
-  camera: (
-    <>
-      <rect x="12" y="14" width="40" height="36" rx="8" fill={BODY} stroke={EDGE} strokeWidth="1.5" />
-      <circle cx="32" cy="32" r="11" fill="#0B1A2E" stroke="#64748B" strokeWidth="2" />
-      <circle cx="32" cy="32" r="5" fill={SCREEN_A} />
-      <circle cx="35" cy="29" r="1.8" fill="#fff" opacity=".8" />
-      <circle cx="45" cy="20" r="2" fill={AMBER} />
-    </>
-  ),
-  port: (
-    <>
-      <rect x="10" y="22" width="44" height="20" rx="4" fill="#CBD5E1" stroke="#94A3B8" strokeWidth="1.5" />
-      <rect x="20" y="28" width="24" height="8" rx="4" fill={BODY} />
-      <rect x="25" y="31" width="14" height="2" rx="1" fill={AMBER} />
-      <path d="M14 42v8M50 42v8" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" />
-    </>
-  ),
-  speaker: (
-    <>
-      <rect x="14" y="14" width="36" height="36" rx="8" fill={BODY} stroke={EDGE} strokeWidth="1.5" />
-      <circle cx="32" cy="32" r="11" fill="#334155" />
-      <circle cx="32" cy="32" r="7.5" stroke="#475569" strokeWidth="1.5" />
-      <circle cx="32" cy="32" r="4" fill={SKY} />
-      <circle cx="44" cy="20" r="2" fill={AMBER} />
-    </>
-  ),
-  keyboard: (
-    <>
-      <rect x="6" y="18" width="52" height="28" rx="4" fill={BODY} stroke={EDGE} strokeWidth="1.5" />
-      {Array.from({ length: 3 }, (_, row) =>
-        Array.from({ length: 7 }, (_, col) => (
-          <rect key={`${row}-${col}`} x={10 + col * 6.6} y={22 + row * 7} width="5" height="5" rx="1" fill={row === 2 && col > 1 && col < 5 ? '#64748B' : '#475569'} />
-        )),
-      )}
-      <rect x="23" y="36" width="18" height="5" rx="1" fill="#64748B" />
-    </>
-  ),
-  board: (
-    <>
-      <rect x="10" y="10" width="44" height="44" rx="4" fill="#065F46" />
-      <rect x="22" y="22" width="20" height="20" rx="2" fill={BODY} />
-      {[24, 29, 34, 39].map((x) => (
-        <rect key={x} x={x} y="18" width="2" height="4" fill={AMBER} />
-      ))}
-      {[24, 29, 34, 39].map((x) => (
-        <rect key={`b${x}`} x={x} y="42" width="2" height="4" fill={AMBER} />
-      ))}
-      <path d="M14 16h6M14 48h8M44 14v6M50 46h-4" stroke="#34D399" strokeWidth="1.4" strokeLinecap="round" />
-    </>
-  ),
-  storage: (
-    <>
-      <rect x="8" y="20" width="48" height="24" rx="3" fill={BODY} stroke={EDGE} strokeWidth="1.5" />
-      <rect x="14" y="26" width="12" height="12" rx="1.5" fill="#334155" />
-      <rect x="29" y="26" width="12" height="12" rx="1.5" fill="#334155" />
-      <rect x="44" y="28" width="6" height="8" rx="1" fill={SKY} opacity=".8" />
-      {[12, 18, 24, 30, 36, 42, 48].map((x) => (
-        <rect key={x} x={x} y="44" width="3" height="4" fill={AMBER} />
-      ))}
-    </>
-  ),
-  cable: (
-    <>
-      <path d="M14 46c0-18 36-10 36-28" stroke="#475569" strokeWidth="5" strokeLinecap="round" fill="none" />
-      <rect x="44" y="8" width="12" height="10" rx="2" fill="#CBD5E1" />
-      <rect x="8" y="44" width="12" height="10" rx="2" fill="#CBD5E1" />
-      <rect x="47" y="11" width="6" height="2" rx="1" fill={AMBER} />
-    </>
-  ),
-  generic: (
-    <>
-      <circle cx="32" cy="32" r="16" fill="#CBD5E1" />
-      {Array.from({ length: 8 }, (_, i) => (
-        <rect key={i} x="29" y="10" width="6" height="8" rx="1.5" fill="#CBD5E1" transform={`rotate(${i * 45} 32 32)`} />
-      ))}
-      <circle cx="32" cy="32" r="6" fill={BODY} />
-    </>
-  ),
-}
-
-/** Ô hình linh kiện theo loại (đoán từ danh mục/tên). */
-export function PartArt({ kind, size = 40, className = '' }: ArtProps & { kind: PartKind }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={`inline-flex shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 ring-1 ring-slate-200/80 ${className}`}
-      style={{ width: size, height: size }}
-    >
-      <svg viewBox="0 0 64 64" width={size * 0.78} height={size * 0.78} fill="none">
-        {PART_DRAW[kind]}
       </svg>
     </span>
   )

@@ -16,14 +16,24 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import org.junit.jupiter.api.BeforeEach;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 /** Mốc 6 qua HTTP thật: báo giá → khách duyệt → xuất kho → sửa xong → bàn giao + bảo hành; tồn kho đồng thời. */
 class QuotationInventoryIT extends ApiTestSupport {
+
+    @Autowired
+    private StringRedisTemplate redis;
 
     private String admin;
     private String staff;
@@ -44,10 +54,36 @@ class QuotationInventoryIT extends ApiTestSupport {
 
     // ---------- helpers ----------
 
+    /** id của nhóm linh kiện nạp sẵn ở V9 theo mã (SCREEN, RAM…). */
+    private long categoryId(String code) {
+        for (JsonNode c : get("/part-categories", staff).getBody()) {
+            if (c.get("code").asText().equals(code)) {
+                return c.get("id").asLong();
+            }
+        }
+        throw new IllegalStateException("Không có nhóm " + code);
+    }
+
+    private long categoryPartCount(String code, String deviceType) {
+        for (JsonNode c : get("/part-categories?deviceType=" + deviceType, staff).getBody()) {
+            if (c.get("code").asText().equals(code)) {
+                return c.get("partCount").asLong();
+            }
+        }
+        throw new IllegalStateException("Không có nhóm " + code);
+    }
+
+    private Map<String, Object> partBody(String code, String deviceType, Integer warrantyMonths, long sellingPrice, int minStock) {
+        Map<String, Object> body = new HashMap<>(Map.of("sku", unique("LCD").toUpperCase(), "name", "Màn hình OLED",
+                "unit", "cái", "costPrice", 1_800_000, "sellingPrice", sellingPrice, "minStockLevel", minStock,
+                "categoryId", categoryId(code), "grade", "AFTERMARKET", "brand", "GENA"));
+        body.put("deviceType", deviceType);
+        body.put("warrantyMonths", warrantyMonths);
+        return body;
+    }
+
     private long createPart(int stock, int minStock, long sellingPrice) {
-        Map<String, Object> body = Map.of("sku", unique("LCD").toUpperCase(), "name", "Màn hình OLED", "unit", "cái",
-                "costPrice", 1_800_000, "sellingPrice", sellingPrice, "minStockLevel", minStock);
-        long id = post("/parts", body, staff).getBody().get("id").asLong();
+        long id = post("/parts", partBody("SCREEN", "PHONE", null, sellingPrice, minStock), staff).getBody().get("id").asLong();
         if (stock > 0) {
             assertThat(post("/parts/" + id + "/import", Map.of("quantity", stock, "supplierName", "NCC A"), staff)
                     .getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -95,6 +131,16 @@ class QuotationInventoryIT extends ApiTestSupport {
 
     private ResponseEntity<JsonNode> exportPart(long orderId, long partId, int qty, String token) {
         return post("/repair-orders/" + orderId + "/parts", Map.of("partId", partId, "quantity", qty), token);
+    }
+
+    /** Phiếu đã duyệt báo giá, KTV đã xuất linh kiện và hoàn thành (COMPLETED) – sẵn sàng bàn giao. */
+    private long completedOrder(long partId) {
+        long orderId = approvedOrder(partId);
+        assertThat(exportPart(orderId, partId, 1, tech).getStatusCode()).isEqualTo(HttpStatus.OK);
+        transition(order(orderId, tech), "REPAIRING", tech);
+        call(HttpMethod.PATCH, "/repair-orders/" + orderId + "/diagnosis", Map.of("diagnosis", "Hỏng OLED", "solution", "Thay màn"), tech);
+        assertThat(transition(order(orderId, tech), "COMPLETED", tech).getBody().get("status").asText()).isEqualTo("COMPLETED");
+        return orderId;
     }
 
     // ---------- tests ----------
@@ -318,6 +364,226 @@ class QuotationInventoryIT extends ApiTestSupport {
             post("/quotations/" + qid + "/send", null, staff);
 
             assertThat(post("/quotations/" + qid + "/approve", Map.of(), registerCustomer()).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        }
+    }
+
+    /** Danh mục nhóm linh kiện, loại linh kiện, ảnh, bảo hành theo từng dòng (V9 – TD-76). */
+    @Nested
+    class PerPartWarranty {
+
+        /** PNG 1×1 hợp lệ. */
+        private final byte[] png = {
+                (byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0x0D, 'I', 'H', 'D', 'R',
+                0, 0, 0, 1, 0, 0, 0, 1, 8, 6, 0, 0, 0, 0x1F, 0x15, (byte) 0xC4, (byte) 0x89};
+
+        private ResponseEntity<JsonNode> uploadImage(long partId, byte[] data, String token) {
+            HttpHeaders partHeaders = new HttpHeaders();
+            partHeaders.setContentType(MediaType.IMAGE_PNG);
+            ByteArrayResource resource = new ByteArrayResource(data) {
+                @Override
+                public String getFilename() {
+                    return "part.png";
+                }
+            };
+            LinkedMultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("file", new HttpEntity<>(resource, partHeaders));
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(token);
+            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+            return rest.exchange("/api/v1/parts/" + partId + "/image", HttpMethod.PUT, new HttpEntity<>(body, headers), JsonNode.class);
+        }
+
+        @Test
+        void seededCategoriesAndOnlyAdminChangesWarranty() {
+            JsonNode categories = get("/part-categories", tech).getBody();
+            JsonNode screen = null;
+            JsonNode ram = null;
+            for (JsonNode c : categories) {
+                if (c.get("code").asText().equals("SCREEN")) screen = c;
+                if (c.get("code").asText().equals("RAM")) ram = c;
+            }
+            assertThat(categories.size()).isGreaterThanOrEqualTo(30);
+            assertThat(screen.get("defaultWarrantyMonths").asInt()).isEqualTo(6);
+            assertThat(screen.get("deviceTypes").toString()).contains("PHONE").contains("LAPTOP");
+            assertThat(ram.get("defaultWarrantyMonths").asInt()).isEqualTo(36);
+
+            Map<String, Object> body = new HashMap<>(Map.of("code", unique("T").toUpperCase().replace("-", "_"),
+                    "name", "Nhóm thử", "deviceTypes", List.of("PHONE"), "defaultWarrantyMonths", 4));
+            assertThat(post("/part-categories", body, staff).getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            JsonNode created = post("/part-categories", body, admin).getBody();
+            assertThat(created.get("defaultWarrantyMonths").asInt()).isEqualTo(4);
+
+            Map<String, Object> update = new HashMap<>(body);
+            update.put("defaultWarrantyMonths", 9);
+            update.put("exclusions", "Rơi vỡ");
+            update.put("version", created.get("version").asLong());
+            JsonNode updated = call(HttpMethod.PUT, "/part-categories/" + created.get("id").asLong(), update, admin).getBody();
+            assertThat(updated.get("defaultWarrantyMonths").asInt()).isEqualTo(9);
+            assertThat(updated.get("exclusions").asText()).isEqualTo("Rơi vỡ");
+        }
+
+        @Test
+        void partNeedsCategoryAndGradeMatchingDeviceType() {
+            Map<String, Object> noCategory = partBody("SCREEN", "PHONE", null, 100_000, 0);
+            noCategory.remove("categoryId");
+            noCategory.remove("grade");
+            ResponseEntity<JsonNode> invalid = post("/parts", noCategory, staff);
+            assertThat(invalid.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(invalid.getBody().get("fieldErrors").findValuesAsText("field")).contains("categoryId", "grade");
+
+            // RAM không dùng cho điện thoại
+            assertThat(post("/parts", partBody("RAM", "PHONE", null, 100_000, 0), staff).getStatusCode())
+                    .isEqualTo(HttpStatus.BAD_REQUEST);
+
+            JsonNode byCategory = post("/parts", partBody("SCREEN", "PHONE", null, 100_000, 0), staff).getBody();
+            assertThat(byCategory.get("categoryCode").asText()).isEqualTo("SCREEN");
+            assertThat(byCategory.get("grade").asText()).isEqualTo("AFTERMARKET");
+            assertThat(byCategory.get("warrantyMonths").isNull()).isTrue();
+            assertThat(byCategory.get("effectiveWarrantyMonths").asInt()).isEqualTo(6);
+
+            JsonNode own = post("/parts", partBody("SCREEN", "PHONE", 12, 100_000, 0), staff).getBody();
+            assertThat(own.get("effectiveWarrantyMonths").asInt()).isEqualTo(12);
+
+            // Danh mục nhóm kèm số linh kiện đang kinh doanh (để hiện đủ các loại trên trang linh kiện)
+            for (JsonNode c : get("/part-categories", staff).getBody()) {
+                if (c.get("code").asText().equals("SCREEN")) {
+                    assertThat(c.get("partCount").asLong()).isGreaterThanOrEqualTo(2);
+                }
+                assertThat(c.has("stockQuantity")).isTrue();
+            }
+
+            // Lọc theo loại thiết bị: linh kiện laptop không hiện khi lọc điện thoại
+            long ram = post("/parts", partBody("RAM", "LAPTOP", null, 100_000, 0), staff).getBody().get("id").asLong();
+            JsonNode phones = get("/parts?deviceType=PHONE&size=200", staff).getBody();
+            assertThat(phones.get("content").findValuesAsText("id")).doesNotContain(String.valueOf(ram));
+
+            // Số liệu trên thẻ nhóm cũng tính theo loại thiết bị đang lọc
+            assertThat(categoryPartCount("RAM", "PHONE")).isZero();
+            assertThat(categoryPartCount("RAM", "LAPTOP")).isGreaterThanOrEqualTo(1);
+            assertThat(categoryPartCount("SCREEN", "PHONE")).isGreaterThanOrEqualTo(2);
+        }
+
+        @Test
+        void createWithOpeningStockWritesLedgerAndSummary() {
+            Map<String, Object> body = partBody("BATTERY", "PHONE", null, 500_000, 1);
+            body.put("initialQuantity", 5);
+            body.put("supplierName", "NCC Pin");
+            JsonNode part = post("/parts", body, staff).getBody();
+            long partId = part.get("id").asLong();
+            assertThat(part.get("quantityOnHand").asInt()).isEqualTo(5);
+
+            // Tồn đầu kỳ = một dòng NHẬP KHO trong sổ, giá = giá nhập, có nhà cung cấp
+            JsonNode txs = get("/inventory/transactions?partId=" + partId, staff).getBody().get("content");
+            assertThat(txs).hasSize(1);
+            assertThat(txs.get(0).get("type").asText()).isEqualTo("IMPORT");
+            assertThat(txs.get(0).get("balanceAfter").asInt()).isEqualTo(5);
+            assertThat(txs.get(0).get("supplierName").asText()).isEqualTo("NCC Pin");
+            assertThat(txs.get(0).get("unitCost").decimalValue()).isEqualByComparingTo("1800000");
+            assertThat(txs.get(0).get("partCategoryCode").asText()).isEqualTo("BATTERY");
+
+            post("/parts/" + partId + "/import", Map.of("quantity", 2, "unitCost", 1_900_000), staff);
+            JsonNode summary = get("/inventory/summary?partId=" + partId, staff).getBody();
+            assertThat(summary.get("importQuantity").asLong()).isEqualTo(7);
+            assertThat(summary.get("importValue").decimalValue()).isEqualByComparingTo("12800000");
+            assertThat(summary.get("transactionCount").asLong()).isEqualTo(2);
+            assertThat(summary.get("stockQuantity").asLong()).isEqualTo(7);
+            assertThat(summary.get("stockValue").decimalValue()).isEqualByComparingTo("13300000");
+            // Toàn kho cũng tính được (không lỗi khi không lọc)
+            assertThat(get("/inventory/summary", staff).getBody().get("stockQuantity").asLong()).isGreaterThanOrEqualTo(7);
+            assertThat(get("/inventory/summary", tech).getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        }
+
+        @Test
+        void partImageUploadServeAndDelete() {
+            long partId = createPart(0, 0, 100_000);
+            assertThat(uploadImage(partId, "<svg/>".getBytes(), staff).getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(uploadImage(partId, png, tech).getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+
+            JsonNode uploaded = uploadImage(partId, png, staff).getBody();
+            assertThat(uploaded.get("imageUpdatedAt").isNull()).isFalse();
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(customer);
+            ResponseEntity<byte[]> img = rest.exchange("/api/v1/parts/" + partId + "/image", HttpMethod.GET,
+                    new HttpEntity<>(headers), byte[].class);
+            assertThat(img.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(img.getHeaders().getContentType()).isEqualTo(MediaType.IMAGE_PNG);
+            assertThat(img.getBody()).isEqualTo(png);
+
+            JsonNode deleted = call(HttpMethod.DELETE, "/parts/" + partId + "/image", null, staff).getBody();
+            assertThat(deleted.get("imageUpdatedAt").isNull()).isTrue();
+            assertThat(get("/parts/" + partId + "/image", staff).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        }
+
+        @Test
+        void quotationSnapshotsWarrantyAndDeliveryIssuesPerLineWarranty() {
+            long partId = createPart(2, 0, 1_500_000);
+            long orderId = completedOrder(partId);
+
+            // Báo giá đã duyệt lưu loại linh kiện + 6 tháng (mặc định nhóm SCREEN) cho dòng linh kiện
+            JsonNode quotation = get("/repair-orders/" + orderId + "/quotations", customer).getBody().get(0);
+            JsonNode partLine = null;
+            for (JsonNode i : quotation.get("items")) {
+                if (i.get("itemType").asText().equals("PART")) partLine = i;
+            }
+            assertThat(partLine.get("warrantyMonths").asInt()).isEqualTo(6);
+            assertThat(partLine.get("partGrade").asText()).isEqualTo("AFTERMARKET");
+
+            JsonNode suggestions = get("/repair-orders/" + orderId + "/warranty-suggestions", staff).getBody();
+            assertThat(suggestions).hasSize(1);
+            assertThat(suggestions.get(0).get("months").asInt()).isEqualTo(6);
+            assertThat(suggestions.get(0).get("categoryName").asText()).isEqualTo("Màn hình");
+
+            JsonNode delivered = post("/repair-orders/" + orderId + "/deliver",
+                    Map.of("paymentMethod", "CASH", "warrantyMonths", 3), staff).getBody();
+            String code = delivered.get("warrantyCode").asText();
+            JsonNode warranty = get("/warranties/lookup?keyword=" + code, staff).getBody().get(0);
+            assertThat(warranty.get("months").asInt()).isEqualTo(6);
+            assertThat(warranty.get("items")).hasSize(2);
+            assertThat(warranty.get("items").findValuesAsText("description")).contains("Công sửa chữa");
+            assertThat(warranty.get("items").findValues("months")).extracting(JsonNode::asInt).containsExactlyInAnyOrder(6, 3);
+
+            // Phiếu nhiều dòng → yêu cầu bảo hành phải chọn dòng
+            long warrantyId = warranty.get("id").asLong();
+            assertThat(post("/warranties/" + warrantyId + "/claims", Map.of("issueDescription", "Lỗi lại"), customer)
+                    .getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            long laborItem = 0;
+            for (JsonNode i : warranty.get("items")) {
+                if (i.get("description").asText().equals("Công sửa chữa")) laborItem = i.get("id").asLong();
+            }
+            JsonNode claim = post("/warranties/" + warrantyId + "/claims",
+                    Map.of("warrantyItemId", laborItem, "issueDescription", "Lỗi lại"), customer).getBody();
+            assertThat(claim.get("warrantyItemDescription").asText()).isEqualTo("Công sửa chữa");
+
+            // Tra cứu công khai: từng dòng, không lộ thông tin cá nhân.
+            // Xoá bộ đếm giới hạn tần suất (test khác cố ý dùng hết 10 lượt/phút từ cùng IP)
+            redis.delete(redis.keys("rl:warranty:*"));
+            JsonNode check = call(HttpMethod.GET, "/public/warranty-check?keyword=" + code, null, null).getBody();
+            assertThat(check.get("items")).hasSize(2);
+            assertThat(check.toString()).doesNotContain("customerName");
+        }
+
+        @Test
+        void deliveryRejectsWarrantyForPartNotInApprovedQuotation() {
+            long partId = createPart(2, 0, 1_000_000);
+            long otherPart = createPart(0, 0, 1_000_000);
+            long orderId = completedOrder(partId);
+
+            Map<String, Object> line = Map.of("partId", otherPart, "description", "Linh kiện lạ", "months", 6);
+            ResponseEntity<JsonNode> res = post("/repair-orders/" + orderId + "/deliver",
+                    Map.of("paymentMethod", "CASH", "warrantyItems", List.of(line)), staff);
+            assertThat(res.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+
+            // Danh sách nhân viên chỉnh: linh kiện 12 tháng, bỏ bảo hành công (0 tháng)
+            List<Map<String, Object>> lines = List.of(
+                    Map.of("partId", partId, "description", "Màn hình OLED", "months", 12),
+                    Map.of("description", "Công sửa chữa", "months", 0));
+            JsonNode delivered = post("/repair-orders/" + orderId + "/deliver",
+                    Map.of("paymentMethod", "CASH", "warrantyItems", lines), staff).getBody();
+            JsonNode warranty = get("/warranties/lookup?keyword=" + delivered.get("warrantyCode").asText(), staff).getBody().get(0);
+            assertThat(warranty.get("items")).hasSize(1);
+            assertThat(warranty.get("items").get(0).get("months").asInt()).isEqualTo(12);
+            assertThat(warranty.get("items").get(0).get("partGrade").asText()).isEqualTo("AFTERMARKET");
         }
     }
 }

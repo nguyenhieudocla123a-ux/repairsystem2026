@@ -39,7 +39,7 @@ class DatabaseSchemaIT extends IntegrationTestBase {
         List<String> versions = java.util.Arrays.stream(flyway.info().applied())
                 .map(m -> m.getVersion().getVersion())
                 .toList();
-        assertThat(versions).containsExactly("1", "2", "3", "4", "5", "6", "7", "8");
+        assertThat(versions).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9");
         assertThat(flyway.info().pending()).isEmpty();
     }
 

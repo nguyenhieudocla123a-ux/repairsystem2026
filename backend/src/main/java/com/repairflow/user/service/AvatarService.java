@@ -85,7 +85,7 @@ public class AvatarService {
     }
 
     /** JPEG: FF D8 FF · PNG: 89 50 4E 47 0D 0A 1A 0A · WebP: "RIFF" ???? "WEBP". */
-    static String detectImageType(byte[] d) {
+    public static String detectImageType(byte[] d) {
         if (d.length >= 3 && (d[0] & 0xFF) == 0xFF && (d[1] & 0xFF) == 0xD8 && (d[2] & 0xFF) == 0xFF) {
             return "image/jpeg";
         }

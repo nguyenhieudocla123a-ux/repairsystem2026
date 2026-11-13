@@ -1,6 +1,7 @@
 package com.repairflow.quotation.entity;
 
 import com.repairflow.inventory.entity.Part;
+import com.repairflow.inventory.entity.PartGrade;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -53,6 +54,14 @@ public class QuotationItem {
     @Column(name = "line_total", nullable = false, precision = 15, scale = 2)
     private BigDecimal lineTotal;
 
+    /** Loại linh kiện + số tháng bảo hành tại thời điểm báo giá – điều khách đã đồng ý khi duyệt. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "part_grade")
+    private PartGrade partGrade;
+
+    @Column(name = "warranty_months")
+    private Integer warrantyMonths;
+
     public QuotationItem(Quotation quotation, QuotationItemType itemType, Part part, String description,
                          int quantity, BigDecimal unitPrice) {
         this.quotation = quotation;
@@ -62,5 +71,9 @@ public class QuotationItem {
         this.quantity = quantity;
         this.unitPrice = unitPrice;
         this.lineTotal = unitPrice.multiply(BigDecimal.valueOf(quantity));
+        if (part != null) {
+            this.partGrade = part.getGrade();
+            this.warrantyMonths = part.effectiveWarrantyMonths();
+        }
     }
 }

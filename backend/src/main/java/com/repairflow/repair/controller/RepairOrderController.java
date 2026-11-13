@@ -38,6 +38,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import com.repairflow.warranty.dto.WarrantyDtos.WarrantyItemSuggestion;
 
 @Tag(name = "Repair Orders", description = "Phiếu sửa chữa – tiếp nhận, phân công, chẩn đoán, chuyển trạng thái")
 @RestController
@@ -121,7 +122,15 @@ public class RepairOrderController {
         return service.transition(id, request.toStatus(), request.note(), request.version(), user);
     }
 
-    @Operation(summary = "Bàn giao máy (COMPLETED → DELIVERED kèm thanh toán + bảo hành; REJECTED → DELIVERED trả máy không sửa)")
+    @Operation(summary = "Gợi ý dòng bảo hành khi bàn giao (linh kiện trong báo giá đã duyệt + số tháng đã báo khách)")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @GetMapping("/{id}/warranty-suggestions")
+    public List<WarrantyItemSuggestion> warrantySuggestions(@PathVariable Long id,
+                                                            @AuthenticationPrincipal AuthenticatedUser user) {
+        return deliveryService.warrantySuggestions(id, user);
+    }
+
+    @Operation(summary = "Bàn giao máy (COMPLETED → DELIVERED kèm thanh toán + bảo hành theo từng dòng; REJECTED → DELIVERED trả máy không sửa)")
     @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     @PostMapping("/{id}/deliver")
     public RepairOrderDetailResponse deliver(@PathVariable Long id,

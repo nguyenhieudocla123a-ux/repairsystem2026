@@ -50,6 +50,18 @@ export function PublicWarrantyCheckPage() {
             <Descriptions.Item label="Thiết bị">{result.deviceModel}</Descriptions.Item>
             {result.serialMasked && <Descriptions.Item label="Serial"><span className="font-mono">{result.serialMasked}</span></Descriptions.Item>}
             <Descriptions.Item label="Hiệu lực">{formatDate(result.startDate)} → {formatDate(result.endDate)}</Descriptions.Item>
+            {result.items.length > 0 && (
+              <Descriptions.Item label="Từng hạng mục">
+                <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
+                  {result.items.map((i, idx) => (
+                    <li key={`${i.description}-${idx}`} className="flex flex-wrap items-center justify-between gap-2">
+                      <span>{i.description}</span>
+                      <span className={`text-sm ${i.valid ? 'text-success' : 'text-text-muted'}`}>{i.valid ? 'còn đến' : 'hết hạn'} {formatDate(i.endDate)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </Descriptions.Item>
+            )}
           </Descriptions>
         )}
       </div>

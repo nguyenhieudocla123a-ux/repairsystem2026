@@ -411,3 +411,32 @@ CUSTOMER nhận cùng DTO nhưng `deviceCondition`/thông tin nội bộ vẫn h
 |---|---|
 | `/actuator/health` | Healthcheck (public, không lộ chi tiết) |
 | `/v3/api-docs`, `/swagger-ui.html` | OpenAPI (bật ở dev; production có thể tắt bằng biến môi trường) |
+
+
+## Bổ sung V9 – nhóm linh kiện, ảnh linh kiện, bảo hành theo từng dòng (TD-76, TD-77)
+
+| Method | Path | Quyền | Mô tả |
+|---|---|---|---|
+| GET | `/part-categories` | ADMIN, STAFF, TECHNICIAN | Danh mục nhóm linh kiện: `code, name, deviceTypes[], defaultWarrantyMonths, warrantyScope, exclusions, active` |
+| POST | `/part-categories` | ADMIN | Thêm nhóm (`code` chữ IN HOA, số, `_`) |
+| PUT | `/part-categories/{id}` | ADMIN | Sửa tên / loại thiết bị / bảo hành mặc định (0–120 tháng) / phạm vi / điều kiện từ chối (`version` bắt buộc) |
+| GET | `/parts?categoryId=&deviceType=` | ADMIN, STAFF, TECHNICIAN | Lọc theo nhóm và loại thiết bị (linh kiện dùng chung luôn hiện) |
+| POST/PUT | `/parts` | ADMIN, STAFF | Bắt buộc `categoryId`, `grade` (OEM / ORIGINAL_USED / AFTERMARKET / GENERIC); tuỳ chọn `deviceType`, `brand`, `compatibleModels`, `warrantyMonths` (null = theo nhóm). Nhóm phải áp dụng cho `deviceType` |
+| PUT | `/parts/{id}/image` | ADMIN, STAFF | Ảnh linh kiện (multipart `file`, ≤ 2 MB, JPEG/PNG/WebP theo chữ ký file) |
+| DELETE | `/parts/{id}/image` | ADMIN, STAFF | Xoá ảnh (quay về ảnh mặc định của nhóm) |
+| GET | `/parts/{id}/image` | Mọi người đã đăng nhập | Ảnh linh kiện, cache riêng 7 ngày, client gắn `?v=imageUpdatedAt` |
+| GET | `/repair-orders/{id}/warranty-suggestions` | ADMIN, STAFF | Dòng bảo hành gợi ý khi bàn giao: linh kiện trong báo giá đã duyệt + số tháng đã báo khách |
+
+Thay đổi trên API có sẵn:
+- `PartResponse` thêm `categoryId/Code/Name, deviceType, grade, brand, compatibleModels, warrantyMonths, effectiveWarrantyMonths, imageUpdatedAt` (bỏ `category` chữ tự do và `GET /parts/categories`).
+- Dòng báo giá (`QuotationItemResponse`) thêm `partGrade, warrantyMonths` – lưu cố định lúc lập báo giá.
+- `POST /repair-orders/{id}/deliver` thêm `warrantyItems: [{partId?, description, quantity?, months}]` (partId null = công sửa; months 0 = bỏ dòng; linh kiện phải có trong báo giá đã duyệt). Không gửi → tự lấy gợi ý + dòng "Công sửa chữa" `warrantyMonths` tháng.
+- `WarrantyResponse.items[]`: `description, partGrade, quantity, months, endDate, valid, daysRemaining, exclusions`; `months/endDate` của phiếu = dòng dài nhất (tối đa 120 tháng).
+- `POST /warranties/{id}/claims` thêm `warrantyItemId` (bắt buộc khi phiếu có > 1 dòng còn hạn; dòng phải còn hạn). `WarrantyClaimResponse` thêm `warrantyItemId, warrantyItemDescription`.
+- `GET /public/warranty-check` thêm `items: [{description, endDate, valid}]` (không có thông tin cá nhân).
+
+### Bổ sung – tồn đầu kỳ & sổ kho đầy đủ
+- `POST /parts` nhận thêm `initialQuantity` (0–100000) và `supplierName`: tạo linh kiện kèm **một dòng sổ kho IMPORT "Tồn đầu kỳ"** (giá = `costPrice`) trong cùng transaction. Sửa linh kiện bỏ qua 2 trường này – tồn chỉ đổi qua Nhập kho / Kiểm kê.
+- `GET /inventory/summary?partId=&type=&from=&to=` (ADMIN, STAFF): `importQuantity/Value, exportQuantity/Value, returnQuantity/Value, adjustmentQuantity, transactionCount, stockQuantity, stockValue` (giá trị = số lượng × giá nhập ghi trên từng dòng; tồn × giá nhập gần nhất).
+- `TransactionResponse` thêm `partUnit, partCategoryCode, partImageUpdatedAt` (hiển thị ảnh linh kiện trong sổ kho).
+- `GET /part-categories` thêm `partCount, stockQuantity` (số linh kiện đang kinh doanh và tổng tồn của nhóm); tham số tùy chọn `deviceType` → chỉ đếm linh kiện của loại thiết bị đó và linh kiện dùng chung (`deviceType` rỗng), cùng quy tắc với `GET /parts?deviceType=`.

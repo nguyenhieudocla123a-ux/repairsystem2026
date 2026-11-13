@@ -77,8 +77,15 @@ class Milestone7IT extends ApiTestSupport {
 
     /** Đưa phiếu tới DELIVERED với bảo hành `months` tháng, trả về warrantyId. */
     private long deliveredWithWarranty(int months) {
-        long partId = post("/parts", Map.of("sku", unique("P").toUpperCase(), "name", "Pin", "unit", "cái", "costPrice", 100_000,
-                "sellingPrice", 300_000, "minStockLevel", 0), staff).getBody().get("id").asLong();
+        long batteryCategory = 0;
+        for (JsonNode c : get("/part-categories", staff).getBody()) {
+            if (c.get("code").asText().equals("BATTERY")) batteryCategory = c.get("id").asLong();
+        }
+        // Bảo hành riêng của linh kiện = 0 → phiếu chỉ có dòng "Công sửa chữa" `months` tháng (giữ đúng ý test)
+        Map<String, Object> part = new HashMap<>(Map.of("sku", unique("P").toUpperCase(), "name", "Pin", "unit", "cái",
+                "costPrice", 100_000, "sellingPrice", 300_000, "minStockLevel", 0, "categoryId", batteryCategory,
+                "grade", "AFTERMARKET", "warrantyMonths", 0));
+        long partId = post("/parts", part, staff).getBody().get("id").asLong();
         long id = newOrder(techUser.getId()).get("id").asLong();
         transition(id, "INSPECTING", tech);
         Map<String, Object> item = new HashMap<>(Map.of("itemType", "PART", "quantity", 1));

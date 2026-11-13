@@ -32,7 +32,7 @@ public class CacheConfig implements CachingConfigurer {
     /** Dashboard ADMIN: truy vấn tổng hợp nặng nhất. TTL ngắn + xóa khi có sự kiện nghiệp vụ. */
     public static final String ADMIN_DASHBOARD = "dashboard-admin";
     /** Danh sách linh kiện cho ô chọn. Xóa khi sửa linh kiện hoặc tồn kho thay đổi. */
-    public static final String PART_OPTIONS = "parts-options";
+    public static final String PART_OPTIONS = "parts-options-v2"; // v2: thêm nhóm, loại linh kiện, bảo hành (V9) – tránh đọc bản cache cũ
 
     @Bean
     public RedisCacheManagerBuilderCustomizer redisCacheCustomizer(ObjectMapper objectMapper) {

@@ -3,10 +3,11 @@ import { Alert, App, Button, DatePicker, Input, InputNumber, Modal, Select } fro
 import dayjs from 'dayjs'
 import { useState } from 'react'
 import { MoneyText } from '@/components/MoneyText'
-import { inventoryApi } from '@/features/inventory/inventoryApi'
+import { PART_GRADE_CONFIG, inventoryApi } from '@/features/inventory/inventoryApi'
 import { useAsyncData } from '@/hooks/useAsyncData'
 import { getErrorMessage } from '@/utils/errors'
 import { quotationsApi, type Quotation, type QuotationItemType } from '../quotationsApi'
+import { PartImage } from '@/features/inventory/components/PartImage'
 
 interface Row {
   key: number
@@ -97,11 +98,17 @@ export function QuotationEditor({ orderId, quotation, onClose, onSaved }: { orde
                 onChange={(id) => update(r.key, { partId: id, unitPrice: undefined })}
                 options={(parts.data ?? []).map((p) => ({
                   value: p.id,
-                  search: `${p.sku} ${p.name}`,
+                  search: `${p.sku} ${p.name} ${p.categoryName ?? ''}`,
                   label: (
-                    <span className="flex justify-between gap-2">
-                      <span className="truncate">{p.name}</span>
-                      <span className={`shrink-0 text-xs ${p.quantityOnHand > 0 ? 'text-text-muted' : 'text-error'}`}>tồn {p.quantityOnHand}</span>
+                    <span className="flex items-center justify-between gap-2">
+                      <span className="flex min-w-0 items-center gap-2">
+                        <PartImage partId={p.id} categoryCode={p.categoryCode} version={p.imageUpdatedAt} size={24} className="!rounded" />
+                        <span className="truncate">{p.name}</span>
+                        {p.grade && <span className="shrink-0 text-xs text-text-muted">{PART_GRADE_CONFIG[p.grade].short}</span>}
+                      </span>
+                      <span className="shrink-0 text-xs text-text-muted">
+                        BH {p.warrantyMonths}th · <span className={p.quantityOnHand > 0 ? '' : 'text-error'}>tồn {p.quantityOnHand}</span>
+                      </span>
                     </span>
                   ),
                 }))}

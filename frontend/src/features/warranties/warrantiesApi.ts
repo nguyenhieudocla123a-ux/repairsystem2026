@@ -3,6 +3,7 @@ import { http } from '@/services/http'
 import type { PageQuery, PageResponse } from '@/types/api'
 import type { RepairPriority } from '@/types/enums'
 import { cleanParams } from '@/utils/params'
+import type { PartGrade } from '@/features/inventory/inventoryApi'
 
 /** Kiểu khớp WarrantyDtos.java – docs/api-specification.md §10 */
 export interface Warranty {
@@ -22,6 +23,20 @@ export interface Warranty {
   valid: boolean
   daysRemaining: number
   createdAt: string
+  /** Bảo hành theo từng linh kiện / dịch vụ; hạn của phiếu = dòng dài nhất */
+  items: WarrantyItem[]
+}
+
+export interface WarrantyItem {
+  id: number
+  description: string
+  partGrade: PartGrade | null
+  quantity: number
+  months: number
+  endDate: string
+  valid: boolean
+  daysRemaining: number
+  exclusions: string | null
 }
 
 export type ClaimStatus = 'SUBMITTED' | 'ACCEPTED' | 'REJECTED' | 'RESOLVED'
@@ -33,6 +48,8 @@ export interface WarrantyClaim {
   warrantyCode: string
   customerName: string
   deviceName: string
+  warrantyItemId: number | null
+  warrantyItemDescription: string | null
   issueDescription: string
   status: ClaimStatus
   resolutionNote: string | null
@@ -58,6 +75,7 @@ export interface PublicWarrantyCheck {
   endDate: string
   valid: boolean
   daysRemaining: number
+  items: { description: string; endDate: string; valid: boolean }[]
 }
 
 export const warrantiesApi = {
@@ -67,8 +85,9 @@ export const warrantiesApi = {
   get: (id: number) => http.get<WarrantyDetail>(`/warranties/${id}`).then((r) => r.data),
   void: (id: number, reason: string) => http.patch<Warranty>(`/warranties/${id}/void`, { reason }).then((r) => r.data),
   mine: () => http.get<Warranty[]>('/me/warranties').then((r) => r.data),
-  createClaim: (id: number, issueDescription: string) =>
-    http.post<WarrantyClaim>(`/warranties/${id}/claims`, { issueDescription }).then((r) => r.data),
+  /** warrantyItemId: linh kiện / dịch vụ bị lỗi (bắt buộc khi phiếu có nhiều dòng) */
+  createClaim: (id: number, issueDescription: string, warrantyItemId?: number) =>
+    http.post<WarrantyClaim>(`/warranties/${id}/claims`, { issueDescription, warrantyItemId }).then((r) => r.data),
   claims: (query: PageQuery & { status?: ClaimStatus[] }) =>
     http.get<PageResponse<WarrantyClaim>>('/warranty-claims', { params: cleanParams(query) }).then((r) => r.data),
   accept: (id: number, body: { technicianId?: number; deviceCondition?: string; priority?: RepairPriority; note?: string }) =>

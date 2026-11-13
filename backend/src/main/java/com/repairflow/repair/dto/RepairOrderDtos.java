@@ -21,6 +21,8 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Set;
+import jakarta.validation.Valid;
+import java.util.List;
 
 /** DTO phiếu sửa chữa – docs/api-specification.md §7. */
 public final class RepairOrderDtos {
@@ -82,11 +84,24 @@ public final class RepairOrderDtos {
             @DecimalMin(value = "0", message = "Số tiền không được âm")
             @Digits(integer = 13, fraction = 2) BigDecimal finalAmount,
             PaymentMethod paymentMethod,
-            @Min(value = 0, message = "Số tháng bảo hành từ 0 đến 24")
-            @Max(value = 24, message = "Số tháng bảo hành từ 0 đến 24") Integer warrantyMonths,
+            /** Bảo hành công sửa chữa (dòng không gắn linh kiện); 0 = không bảo hành công. */
+            @Min(value = 0, message = "Số tháng bảo hành từ 0 đến 120")
+            @Max(value = 120, message = "Số tháng bảo hành từ 0 đến 120") Integer warrantyMonths,
             @Size(max = 2000) String warrantyTerms,
+            /** null → tự lấy từ báo giá đã duyệt (+ dòng công nếu warrantyMonths > 0). */
+            @Size(max = 50) List<@Valid WarrantyItemRequest> warrantyItems,
             @Size(max = 2000) String note,
             Long version) {
+    }
+
+    /** Một dòng bảo hành khi bàn giao. partId null = công sửa chữa / dịch vụ. months 0 = không bảo hành dòng này. */
+    public record WarrantyItemRequest(
+            Long partId,
+            @NotBlank(message = "Vui lòng nhập mô tả dòng bảo hành") @Size(max = 255) String description,
+            @Min(1) @Max(1000) Integer quantity,
+            @NotNull(message = "Vui lòng nhập số tháng bảo hành")
+            @Min(value = 0, message = "Số tháng bảo hành từ 0 đến 120")
+            @Max(value = 120, message = "Số tháng bảo hành từ 0 đến 120") Integer months) {
     }
 
     public record CancelRequest(@NotBlank(message = "Vui lòng nhập lý do hủy") @Size(max = 2000) String reason) {

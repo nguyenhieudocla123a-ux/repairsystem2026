@@ -3,6 +3,7 @@ import { http } from '@/services/http'
 import type { PageQuery, PageResponse } from '@/types/api'
 import type { PaymentMethod, RepairPriority, RepairStatus, Role } from '@/types/enums'
 import { cleanParams } from '@/utils/params'
+import type { PartGrade } from '@/features/inventory/inventoryApi'
 
 /** Kiểu khớp RepairOrderDtos.java – docs/api-specification.md §6–7 */
 export interface RepairOrderSummary {
@@ -70,10 +71,31 @@ export interface RepairOrderDetail {
 export interface DeliverRequest {
   finalAmount?: number
   paymentMethod?: PaymentMethod
+  /** Bảo hành công sửa chữa – chỉ dùng khi không gửi warrantyItems */
   warrantyMonths?: number
   warrantyTerms?: string
+  /** Bảo hành theo từng dòng (partId null = công sửa chữa); months 0 = bỏ dòng */
+  warrantyItems?: WarrantyItemRequest[]
   note?: string
   version: number
+}
+
+export interface WarrantyItemRequest {
+  partId?: number | null
+  description: string
+  quantity?: number
+  months: number
+}
+
+/** Gợi ý dòng bảo hành khi bàn giao: linh kiện trong báo giá đã duyệt + số tháng đã báo khách */
+export interface WarrantyItemSuggestion {
+  partId: number | null
+  description: string
+  categoryName: string | null
+  partGrade: PartGrade | null
+  quantity: number
+  months: number
+  exclusions: string | null
 }
 
 export interface StatusHistoryEntry {
@@ -137,6 +159,7 @@ export const repairsApi = {
     http.patch<RepairOrderDetail>(`/repair-orders/${id}/assign`, { technicianId }).then((r) => r.data),
   diagnosis: (id: number, body: { diagnosis?: string; solution?: string }) =>
     http.patch<RepairOrderDetail>(`/repair-orders/${id}/diagnosis`, body).then((r) => r.data),
+  warrantySuggestions: (id: number) => http.get<WarrantyItemSuggestion[]>(`/repair-orders/${id}/warranty-suggestions`).then((r) => r.data),
   deliver: (id: number, body: DeliverRequest) => http.post<RepairOrderDetail>(`/repair-orders/${id}/deliver`, body).then((r) => r.data),
   transition: (id: number, body: { toStatus: RepairStatus; note?: string; version: number }) =>
     http.post<RepairOrderDetail>(`/repair-orders/${id}/transitions`, body).then((r) => r.data),

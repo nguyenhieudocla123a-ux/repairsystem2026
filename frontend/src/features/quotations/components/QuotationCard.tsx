@@ -1,7 +1,8 @@
-import { CheckOutlined, CloseOutlined, DeleteOutlined, EditOutlined, SendOutlined } from '@ant-design/icons'
-import { App, Button, Card, Input, Space, Table } from 'antd'
+import { CheckOutlined, CloseOutlined, DeleteOutlined, EditOutlined, SafetyCertificateOutlined, SendOutlined } from '@ant-design/icons'
+import { App, Button, Card, Input, Space, Table, Tag } from 'antd'
 import { MoneyText } from '@/components/MoneyText'
 import { StatusTag } from '@/components/StatusTag'
+import { PART_GRADE_CONFIG } from '@/features/inventory/inventoryApi'
 import { QUOTATION_STATUS_CONFIG } from '@/features/repairs/constants/status'
 import { getErrorMessage } from '@/utils/errors'
 import { formatDate, formatDateTime } from '@/utils/format'
@@ -115,7 +116,25 @@ export function QuotationCard({ quotation: q, viewer, onEdit, onChanged }: Quota
         dataSource={q.items}
         scroll={{ x: 'max-content' }}
         columns={[
-          { title: 'Hạng mục', dataIndex: 'description', render: (v: string, i) => <span>{v} {i.itemType === 'LABOR' && <span className="text-xs text-text-muted">(tiền công)</span>}</span> },
+          {
+            title: 'Hạng mục',
+            dataIndex: 'description',
+            render: (v: string, i) => (
+              <div>
+                <span>{v} {i.itemType === 'LABOR' && <span className="text-xs text-text-muted">(tiền công)</span>}</span>
+                {i.itemType === 'PART' && (
+                  <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs">
+                    {i.partGrade && <Tag color={PART_GRADE_CONFIG[i.partGrade].color} className="!m-0">{PART_GRADE_CONFIG[i.partGrade].label}</Tag>}
+                    {i.warrantyMonths !== null && (
+                      <span className={i.warrantyMonths > 0 ? 'text-success' : 'text-text-muted'}>
+                        <SafetyCertificateOutlined /> {i.warrantyMonths > 0 ? `Bảo hành ${i.warrantyMonths} tháng` : 'Không bảo hành'}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            ),
+          },
           { title: 'SL', dataIndex: 'quantity', align: 'right', width: 60 },
           { title: 'Đơn giá', dataIndex: 'unitPrice', align: 'right', render: (v: number) => <MoneyText value={v} /> },
           { title: 'Thành tiền', dataIndex: 'lineTotal', align: 'right', render: (v: number) => <MoneyText value={v} /> },

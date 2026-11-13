@@ -257,6 +257,24 @@
 - [ ] Facebook: chưa có App ID/Secret → nút vẫn tắt
 - [ ] Chưa thử nhánh tài khoản Google mới (trang Hoàn tất đăng ký) với Google thật
 
+## Danh mục linh kiện, ảnh linh kiện, bảo hành theo từng linh kiện (2026-11-13)
+- [x] Tìm hiểu linh kiện theo loại thiết bị + mức bảo hành thị trường VN: `docs/parts-and-warranty-research.md`
+- [x] V9: 38 nhóm linh kiện nạp sẵn (bảo hành mặc định, phạm vi, điều kiện từ chối); linh kiện có nhóm, loại thiết bị,
+      loại linh kiện, thương hiệu, model tương thích, bảo hành riêng – TD-76
+- [x] Báo giá hiện loại linh kiện + bảo hành từng dòng (lưu cố định); bàn giao cấp bảo hành từng dòng (chỉnh được);
+      phiếu bảo hành, yêu cầu bảo hành, tra cứu công khai theo từng dòng
+- [x] Ảnh linh kiện: tải ảnh thật + 25 ảnh mặc định theo nhóm (Adobe Stock miễn phí, có giấy phép) – TD-77
+- [x] Kiểm tra: backend `mvnw verify` 136 test xanh (5 test mới); frontend 51 test, lint, typecheck; xem trên trình duyệt
+      trang Kho (danh sách, tab Nhóm & bảo hành, form sửa linh kiện)
+- [x] Thêm linh kiện kèm số lượng ban đầu (sổ kho "Tồn đầu kỳ"); sổ kho có tổng hợp nhập/xuất/hoàn/giá trị tồn, lọc theo linh kiện,
+      lịch sử từng linh kiện; đổi ảnh nhanh từ danh sách; lưới đủ 38 loại linh kiện trên trang Linh kiện
+- [x] Kho linh kiện mẫu cho dev: 58 linh kiện DEMO-* đủ 38 nhóm, có tồn kho – TD-78
+- [x] Rà lại hiển thị trang Kho: mỗi nhóm một ảnh riêng (38 ảnh, trước đó 9 nhóm dùng chung 1 ảnh, kính camera trùng camera sau,
+      bản lề/touchpad/webcam cùng ảnh laptop); số linh kiện/tồn trên thẻ tính theo loại thiết bị đang lọc (`GET /part-categories?deviceType=`);
+      thẻ ghi rõ "Bảo hành N tháng", tên 2 dòng, lọc Tất cả/Đang có/Chưa có; nhãn loại linh kiện viết đầy đủ;
+      sửa mẫu "Bộ ốc vít iPhone" thiếu loại thiết bị. Linh kiện cũ LCD-IP13 (tạo trước V9) hiện "Chưa phân loại" – cần sửa tay
+- [ ] Chưa thử bằng tay trên trình duyệt: tải ảnh linh kiện, hộp thoại bàn giao, chọn dòng khi yêu cầu bảo hành (đã có test API)
+
 ## Lộ trình theo mốc
 
 1. ✅ Phân tích nghiệp vụ + ERD + UI/UX
