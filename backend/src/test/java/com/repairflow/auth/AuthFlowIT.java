@@ -136,6 +136,32 @@ class AuthFlowIT extends IntegrationTestBase {
         }
 
         @Test
+        void emailAndPasswordOnlyCreatesIncompleteProfileThatBlocksServicesUntilCompleted() {
+            String email = uniqueEmail("minimal");
+            sendCode(email);
+            ResponseEntity<JsonNode> res = call(HttpMethod.POST, "/auth/register",
+                    Map.of("email", email, "password", PASSWORD, "verificationCode", mailer.lastCodeFor(email)), null, null);
+            assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+            JsonNode user = res.getBody().get("user");
+            assertThat(user.get("phone").isNull()).isTrue();
+            assertThat(user.get("fullName").asText()).isEqualTo(email.substring(0, email.indexOf('@')));
+            String token = res.getBody().get("accessToken").asText();
+
+            // Dùng dịch vụ khi hồ sơ chưa đủ → 409 PROFILE_INCOMPLETE
+            Map<String, Object> device = Map.of("name", "iPhone 13", "deviceType", "PHONE", "brand", "Apple", "model", "iPhone 13");
+            ResponseEntity<JsonNode> blocked = call(HttpMethod.POST, "/me/devices", device, token, null);
+            assertThat(blocked.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+            assertThat(blocked.getBody().get("code").asText()).isEqualTo("PROFILE_INCOMPLETE");
+            // Xem dữ liệu của mình vẫn được
+            assertThat(call(HttpMethod.GET, "/me/devices", null, token, null).getStatusCode()).isEqualTo(HttpStatus.OK);
+
+            // Hoàn tất hồ sơ → dùng dịch vụ được
+            assertThat(call(HttpMethod.PUT, "/auth/me", Map.of("fullName", "Khách Mới", "phone", uniquePhone()), token, null)
+                    .getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(call(HttpMethod.POST, "/me/devices", device, token, null).getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        }
+
+        @Test
         void weakPasswordReturnsFieldErrors() {
             Map<String, String> body = Map.of("fullName", "A B", "email", uniqueEmail("weak"), "phone", uniquePhone(),
                     "password", "abc", "verificationCode", "123456");
@@ -332,6 +358,20 @@ class AuthFlowIT extends IntegrationTestBase {
             ResponseEntity<JsonNode> res = call(HttpMethod.POST, "/auth/forgot-password",
                     Map.of("email", uniqueEmail("ghost")), null, null);
             assertThat(res.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        }
+
+        @Test
+        void forgotPasswordEmailsWorkingResetLink() {
+            User user = createUser(Role.CUSTOMER);
+            assertThat(call(HttpMethod.POST, "/auth/forgot-password", Map.of("email", user.getEmail()), null, null)
+                    .getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+
+            String link = mailer.lastResetLinkFor(user.getEmail());
+            assertThat(link).as("đã gửi email chứa liên kết").contains("/reset-password?token=");
+            String token = link.substring(link.indexOf("token=") + 6);
+            assertThat(call(HttpMethod.POST, "/auth/reset-password", Map.of("token", token, "newPassword", "Mailed123abc"), null, null)
+                    .getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+            assertThat(login(user.getEmail(), "Mailed123abc").getStatusCode()).isEqualTo(HttpStatus.OK);
         }
 
         @Test

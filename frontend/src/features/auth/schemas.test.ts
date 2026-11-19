@@ -1,10 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { loginSchema, registerSchema } from './schemas'
+import { completeProfileSchema, loginSchema, passwordLevel, registerSchema } from './schemas'
 
 const validRegister = {
-  fullName: 'Nguyễn Văn A',
   email: 'a@gmail.com',
-  phone: '0901234567',
   password: 'Abc12345',
   confirmPassword: 'Abc12345',
 }
@@ -36,7 +34,18 @@ describe('auth schemas', () => {
   })
 
   it('số điện thoại Việt Nam', () => {
-    expect(registerSchema.safeParse({ ...validRegister, phone: '0123' }).success).toBe(false)
-    expect(registerSchema.safeParse({ ...validRegister, phone: '+84901234567' }).success).toBe(true)
+    expect(completeProfileSchema.safeParse({ fullName: 'Nguyễn Văn A', phone: '0123' }).success).toBe(false)
+    expect(completeProfileSchema.safeParse({ fullName: 'Nguyễn Văn A', phone: '+84901234567' }).success).toBe(true)
+  })
+
+  it.each([
+    ['', 0],
+    ['abc', 1],
+    ['abcdefgh1', 1],
+    ['Abcdef12', 2],
+    ['Abcdef12!xyz', 3],
+    ['Abcdefgh123456', 3],
+  ] as const)('độ mạnh "%s" = %i', (value, level) => {
+    expect(passwordLevel(value)).toBe(level)
   })
 })

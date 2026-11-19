@@ -15,6 +15,7 @@ import { repairRequestsApi, repairsApi } from '@/features/repairs/repairsApi'
 import { useAsyncData } from '@/hooks/useAsyncData'
 import { getErrorMessage } from '@/utils/errors'
 import { formatDate, formatDateTime } from '@/utils/format'
+import { useProfileGate } from '@/features/auth/profileGate'
 
 function NewRequestModal({ initialDeviceId, onClose, onCreated }: { initialDeviceId?: number; onClose: () => void; onCreated: () => void }) {
   const navigate = useNavigate()
@@ -74,6 +75,7 @@ function NewRequestModal({ initialDeviceId, onClose, onCreated }: { initialDevic
 
 /** Cổng khách hàng: phiếu sửa chữa (theo dõi tiến độ) + yêu cầu đã gửi. */
 export function MyRepairsPage() {
+  const { requireProfile } = useProfileGate()
   const requestDeviceId = (useLocation().state as { requestDeviceId?: number } | null)?.requestDeviceId
   const [creating, setCreating] = useState(Boolean(requestDeviceId))
   const orders = useAsyncData(() => repairsApi.mine({ size: 50 }), [])
@@ -101,7 +103,7 @@ export function MyRepairsPage() {
       <PageHeader
         title="Sửa chữa của tôi"
         description="Theo dõi tiến độ sửa chữa và các yêu cầu đã gửi."
-        extra={<Button type="primary" icon={<PlusOutlined />} onClick={() => setCreating(true)}>Gửi yêu cầu sửa chữa</Button>}
+        extra={<Button type="primary" icon={<PlusOutlined />} onClick={() => requireProfile(() => setCreating(true))}>Gửi yêu cầu sửa chữa</Button>}
       />
       <Card styles={{ body: { paddingTop: 8 } }}>
         <Tabs

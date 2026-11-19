@@ -1,6 +1,7 @@
 import { Outlet, useLocation, useMatches, useNavigate } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '@/app/hooks'
 import { logout } from '@/features/auth/authSlice'
+import { ProfileGateProvider, ProfileIncompleteBanner } from '@/features/auth/components/ProfileGate'
 import { NotificationBellPanel } from '@/features/notifications/components/NotificationBellPanel'
 import { useNotificationSocket } from '@/features/notifications/useNotificationSocket'
 import type { BreadcrumbEntry } from './AppHeader'
@@ -28,23 +29,26 @@ export function AppLayout() {
   ]
 
   return (
-    <AppShell
-      role={user.role}
-      userId={user.id}
-      avatarVersion={user.avatarUpdatedAt}
-      userName={user.fullName}
-      breadcrumbs={breadcrumbs}
-      selectedPath={location.pathname}
-      unreadCount={unreadCount}
-      notificationContent={<NotificationBellPanel />}
-      onNavigate={(path) => navigate(path)}
-      onQuickSearch={(keyword) => navigate(`/repairs?q=${encodeURIComponent(keyword)}`)}
-      onLogout={async () => {
-        await dispatch(logout())
-        navigate('/login', { replace: true })
-      }}
-    >
-      <Outlet />
-    </AppShell>
+    <ProfileGateProvider>
+      <AppShell
+        role={user.role}
+        userId={user.id}
+        avatarVersion={user.avatarUpdatedAt}
+        userName={user.fullName}
+        breadcrumbs={breadcrumbs}
+        selectedPath={location.pathname}
+        unreadCount={unreadCount}
+        notificationContent={<NotificationBellPanel />}
+        onNavigate={(path) => navigate(path)}
+        onQuickSearch={(keyword) => navigate(`/repairs?q=${encodeURIComponent(keyword)}`)}
+        onLogout={async () => {
+          await dispatch(logout())
+          navigate('/login', { replace: true })
+        }}
+      >
+        <ProfileIncompleteBanner />
+        <Outlet />
+      </AppShell>
+    </ProfileGateProvider>
   )
 }

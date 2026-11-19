@@ -23,6 +23,9 @@ export interface HttpAuthBridge {
   onAuthFailure: () => void
 }
 
+/** Sự kiện window khi API báo khách chưa hoàn tất hồ sơ (409 PROFILE_INCOMPLETE) → ProfileGate mở hộp nhập. */
+export const PROFILE_INCOMPLETE_EVENT = 'rf:profile-incomplete'
+
 let bridge: HttpAuthBridge | null = null
 let refreshPromise: Promise<string> | null = null
 
@@ -52,6 +55,9 @@ http.interceptors.response.use(
   (response) => response,
   async (error: AxiosError<ApiErrorResponse>) => {
     const original = error.config as RetriableConfig | undefined
+    if (error.response?.data?.code === 'PROFILE_INCOMPLETE' && typeof window !== 'undefined') {
+      window.dispatchEvent(new Event(PROFILE_INCOMPLETE_EVENT))
+    }
     const isExpired = error.response?.status === 401 && error.response.data?.code === 'TOKEN_EXPIRED'
 
     if (!bridge || !original || !isExpired || original._retried || original.skipAuthRefresh) {

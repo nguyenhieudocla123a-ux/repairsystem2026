@@ -165,6 +165,9 @@ public class QuotationService {
     }
 
     private QuotationResponse respond(Long id, String note, AuthenticatedUser actor, boolean approve) {
+        if (actor.role() == Role.CUSTOMER) {
+            currentCustomer.requireComplete(actor);
+        }
         Quotation quotation = loadVisible(id, actor);
         if (quotation.getStatus() != QuotationStatus.SENT) {
             throw BusinessException.conflict("Báo giá không còn chờ xác nhận (" + quotation.getStatus() + ")");

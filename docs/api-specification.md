@@ -55,7 +55,7 @@ Frontend: interceptor chỉ tự refresh khi `401` + `code = TOKEN_EXPIRED`.
 |---|---|---|---|
 | POST | `/auth/login` | P | Đăng nhập |
 | POST | `/auth/register/send-code` | P | Gửi mã 6 số tới email `{email}` → `{expiresIn: 600, resendAfter: 60}`; 409 email đã dùng, 429 chưa đủ 60 giây / quá 10 lần mỗi giờ mỗi IP |
-| POST | `/auth/register` | P | Khách hàng đăng ký – bắt buộc `verificationCode` (6 số); sai/hết hạn → 400, sai 5 lần huỷ mã |
+| POST | `/auth/register` | P | Khách hàng đăng ký – bắt buộc `email, password, verificationCode` (6 số); `fullName, phone, address` không bắt buộc (thiếu tên → tạm lấy phần trước @ của email; thiếu SĐT → hồ sơ chưa hoàn tất). Mã sai/hết hạn → 400, sai 5 lần huỷ mã |
 | GET | `/auth/oauth2/providers` | P | Nhà cung cấp đang bật `{providers: ["google","facebook"]}` |
 | GET | `/auth/oauth2/authorize/{google\|facebook}` | P | Điều hướng trình duyệt sang Google/Facebook (302) – xem docs/social-login.md |
 | GET | `/auth/oauth2/callback/{id}` | P | Google/Facebook gọi về; chuyển tới `/oauth/callback`, `/register/social` hoặc `/login?oauthError=` |
@@ -63,7 +63,9 @@ Frontend: interceptor chỉ tự refresh khi `401` + `code = TOKEN_EXPIRED`.
 | POST | `/auth/oauth2/complete` | P (cookie `rf_oauth_signup`) | `{fullName, phone, address?, verificationCode}` → 201 + cookie refresh token |
 | POST | `/auth/refresh` | P (cookie) | Cấp access token mới, xoay vòng refresh token |
 | POST | `/auth/logout` | P (cookie) + Bearer nếu có | Thu hồi refresh token, blacklist access token |
-| POST | `/auth/forgot-password` | P | Luôn trả 204 (không tiết lộ email có tồn tại) |
+| POST | `/auth/forgot-password` | P | Luôn trả 204 (không tiết lộ email có tồn tại). Email có tài khoản đang hoạt động → gửi thư "[RepairFlow] Đặt lại mật khẩu" chứa liên kết `FRONTEND_URL/reset-password?token=…` (30 phút, dùng một lần); lỗi SMTP chỉ ghi log |
+
+> **409 `PROFILE_INCOMPLETE`**: khách chưa có SĐT/họ tên gọi `POST /me/devices`, `POST /me/repair-requests`, duyệt/từ chối báo giá, tạo yêu cầu bảo hành → phải `PUT /auth/me` (fullName + phone) trước. Các API xem dữ liệu không bị chặn.
 | POST | `/auth/reset-password` | P | Đặt lại bằng token |
 | GET | `/auth/me` | A S T C | Thông tin user hiện tại |
 | PUT | `/auth/me` | A S T C | Cập nhật họ tên, SĐT |

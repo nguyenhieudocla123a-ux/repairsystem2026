@@ -151,6 +151,9 @@ public class WarrantyService {
     /** STAFF tiếp nhận tại quầy, hoặc khách gửi online cho bảo hành của mình. */
     @Transactional
     public WarrantyClaimResponse createClaim(Long warrantyId, Long itemId, String issue, AuthenticatedUser actor) {
+        if (actor.role() == Role.CUSTOMER) {
+            currentCustomer.requireComplete(actor);
+        }
         Warranty w = loadVisible(warrantyId, actor);
         if (!w.isValidOn(today())) {
             throw BusinessException.conflict(w.getStatus() == WarrantyStatus.VOID

@@ -40,7 +40,8 @@ public class Customer extends BaseEntity {
     @Column(name = "full_name", nullable = false)
     private String fullName;
 
-    @Column(nullable = false, unique = true)
+    /** Null khi khách tự đăng ký chưa bổ sung SĐT (hồ sơ chưa hoàn tất). */
+    @Column(unique = true)
     private String phone;
 
     @Column(unique = true)

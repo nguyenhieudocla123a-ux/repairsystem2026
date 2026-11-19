@@ -12,10 +12,21 @@ import java.util.concurrent.ConcurrentHashMap;
 public class CapturingVerificationCodeMailer implements VerificationCodeMailer {
 
     private final Map<String, String> lastCodes = new ConcurrentHashMap<>();
+    private final Map<String, String> lastResetLinks = new ConcurrentHashMap<>();
 
     @Override
     public void sendRegistrationCode(String email, String code, Duration ttl) {
         lastCodes.put(email, code);
+    }
+
+    @Override
+    public void sendPasswordResetLink(String email, String link, Duration ttl) {
+        lastResetLinks.put(email, link);
+    }
+
+    /** Liên kết đặt lại mật khẩu cuối cùng gửi tới email, null nếu chưa gửi. */
+    public String lastResetLinkFor(String email) {
+        return lastResetLinks.get(email.trim().toLowerCase());
     }
 
     public String lastCodeFor(String email) {

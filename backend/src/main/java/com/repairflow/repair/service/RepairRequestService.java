@@ -63,7 +63,7 @@ public class RepairRequestService {
 
     @Transactional
     public RepairRequestResponse create(CreateRepairRequestRequest request, AuthenticatedUser user) {
-        Customer customer = currentCustomer.require(user);
+        Customer customer = currentCustomer.requireComplete(user);
         Device device = deviceService.loadVisible(request.deviceId(), user); // chỉ thiết bị của chính khách
         RepairRequest entity = new RepairRequest(codeGenerator.next(CodeType.REPAIR_REQUEST), customer, device,
                 request.issueDescription().trim());

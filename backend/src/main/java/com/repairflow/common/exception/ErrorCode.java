@@ -15,6 +15,8 @@ public enum ErrorCode {
     ACCOUNT_LOCKED(HttpStatus.FORBIDDEN),
     NOT_FOUND(HttpStatus.NOT_FOUND),
     CONFLICT(HttpStatus.CONFLICT),
+    /** Khách chưa có họ tên / SĐT – phải hoàn tất hồ sơ trước khi dùng dịch vụ. */
+    PROFILE_INCOMPLETE(HttpStatus.CONFLICT),
     DUPLICATE_RESOURCE(HttpStatus.CONFLICT),
     INVALID_STATUS_TRANSITION(HttpStatus.CONFLICT),
     INSUFFICIENT_STOCK(HttpStatus.CONFLICT),

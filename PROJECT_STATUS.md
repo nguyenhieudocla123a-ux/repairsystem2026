@@ -275,6 +275,15 @@
       sửa mẫu "Bộ ốc vít iPhone" thiếu loại thiết bị. Linh kiện cũ LCD-IP13 (tạo trước V9) hiện "Chưa phân loại" – cần sửa tay
 - [ ] Chưa thử bằng tay trên trình duyệt: tải ảnh linh kiện, hộp thoại bàn giao, chọn dòng khi yêu cầu bảo hành (đã có test API)
 
+## Đăng ký 2 bước, hoàn tất hồ sơ khi dùng dịch vụ, quên mật khẩu gửi email (2026-11-19)
+- [x] Đăng ký: email + mật khẩu + nhập lại mật khẩu → "Đăng ký" gửi mã 6 số → bước nhập mã (tự gửi khi đủ 6 số, gửi lại sau 60s)
+      → đúng mã thì tạo tài khoản, đăng nhập và vào /dashboard – TD-79
+- [x] Họ tên/SĐT không bắt buộc khi đăng ký (V10: `customers.phone` cho phép NULL); thao tác dịch vụ trả 409 PROFILE_INCOMPLETE,
+      frontend hiện dải nhắc + hộp "Hoàn tất hồ sơ" rồi chạy tiếp thao tác
+- [x] Quên mật khẩu gửi email thật (trước chỉ in log) + màn xác nhận rõ ràng: các bước, nút mở Gmail/Outlook, gửi lại sau 60s – TD-80
+- [x] Kiểm tra: backend 140 test xanh (2 test mới), frontend 49 test, lint, typecheck; xem trên trình duyệt form đăng ký bước 1 và màn quên mật khẩu
+- [ ] Chưa thử đầu-cuối trên trình duyệt với backend mới (backend 8080 đang chạy bản cũ của IntelliJ – cần khởi động lại để áp V10)
+
 ## Lộ trình theo mốc
 
 1. ✅ Phân tích nghiệp vụ + ERD + UI/UX

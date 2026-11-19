@@ -21,12 +21,15 @@ public final class AuthDtos {
             @NotBlank(message = "Vui lòng nhập mật khẩu") String password) {
     }
 
+    /**
+     * Đăng ký khách hàng: chỉ bắt buộc email + mật khẩu + mã xác nhận email. Họ tên / SĐT / địa chỉ không bắt buộc –
+     * thiếu SĐT thì hồ sơ "chưa hoàn tất", khách bổ sung ở trang hồ sơ trước khi dùng dịch vụ.
+     */
     public record RegisterRequest(
-            @NotBlank(message = "Vui lòng nhập họ tên") @Size(min = 2, max = 150, message = "Họ tên từ 2 đến 150 ký tự")
-            String fullName,
+            @Size(max = 150, message = "Họ tên tối đa 150 ký tự") String fullName,
             @NotBlank(message = "Vui lòng nhập email") @Email(message = "Email không hợp lệ") @Size(max = 255)
             String email,
-            @NotBlank(message = "Vui lòng nhập số điện thoại") @VietnamesePhone String phone,
+            @VietnamesePhone String phone,
             @StrongPassword String password,
             @Size(max = 255, message = "Địa chỉ tối đa 255 ký tự") String address,
             @NotBlank(message = "Vui lòng nhập mã xác nhận đã gửi tới email")

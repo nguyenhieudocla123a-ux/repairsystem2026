@@ -70,7 +70,7 @@ public class DeviceService {
     public DeviceResponse create(DeviceRequest request, AuthenticatedUser user) {
         Customer owner;
         if (user.role() == Role.CUSTOMER) {
-            owner = currentCustomer.require(user);
+            owner = currentCustomer.requireComplete(user);
         } else {
             if (request.customerId() == null) {
                 throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Vui lòng chọn khách hàng");

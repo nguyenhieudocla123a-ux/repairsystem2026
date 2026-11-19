@@ -28,9 +28,11 @@ export interface LoginRequest {
 }
 
 export interface RegisterRequest {
-  fullName: string
+  /** Không bắt buộc – trống thì backend tạm dùng phần trước @ của email */
+  fullName?: string
   email: string
-  phone: string
+  /** Không bắt buộc – thiếu SĐT thì hồ sơ chưa hoàn tất */
+  phone?: string
   password: string
   address?: string
   /** Mã 6 số gửi tới email ở bước 1 (POST /auth/register/send-code) */

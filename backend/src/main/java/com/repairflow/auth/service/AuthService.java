@@ -88,11 +88,14 @@ public class AuthService {
     @Transactional
     public AuthResult register(RegisterRequest request, RequestMetadata metadata) {
         String email = normalizeEmail(request.email());
-        assertCanRegister(email, request.phone());
+        String phone = StringUtils.hasText(request.phone()) ? request.phone().trim() : null;
+        assertCanRegister(email, phone);
         // Chứng minh sở hữu email: kiểm tra sau các lỗi trùng để không "đốt" lượt thử của người dùng vô ích
         registrationCodeService.verifyAndConsume(email, request.verificationCode());
-        User user = createCustomerAccount(email, passwordEncoder.encode(request.password()), request.fullName(),
-                request.phone(), request.address());
+        // Chưa nhập họ tên → tạm dùng phần trước @ của email, khách sửa lại ở trang hồ sơ
+        String fullName = StringUtils.hasText(request.fullName()) ? request.fullName() : email.substring(0, email.indexOf('@'));
+        User user = createCustomerAccount(email, passwordEncoder.encode(request.password()), fullName,
+                phone, request.address());
         return startSession(user, metadata);
     }
 
@@ -101,7 +104,7 @@ public class AuthService {
         if (userRepository.existsByEmail(normalizedEmail) || customerRepository.existsByEmail(normalizedEmail)) {
             throw new BusinessException(ErrorCode.DUPLICATE_RESOURCE, "Email đã được sử dụng");
         }
-        if (customerRepository.existsByPhone(phone)) {
+        if (phone != null && customerRepository.existsByPhone(phone)) {
             // Không tự liên kết với hồ sơ có sẵn: ai biết SĐT cũng có thể chiếm hồ sơ người khác (requirements AUTH-02)
             throw new BusinessException(ErrorCode.DUPLICATE_RESOURCE,
                     "Số điện thoại đã có hồ sơ tại cửa hàng. Vui lòng liên hệ nhân viên để kích hoạt tài khoản");

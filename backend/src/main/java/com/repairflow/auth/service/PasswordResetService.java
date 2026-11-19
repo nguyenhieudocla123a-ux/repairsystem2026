@@ -17,8 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Quên mật khẩu bằng link một lần (hết hạn sau 30 phút).
- * Chưa tích hợp SMTP (ngoài phạm vi bản đầu): ở profile dev, link được ghi ra log để kiểm thử.
+ * Quên mật khẩu bằng link một lần (hết hạn sau 30 phút), gửi qua email (SMTP cấu hình bằng MAIL_*).
+ * Dev chưa cấu hình SMTP: link được ghi ra log để kiểm thử.
  */
 @Slf4j
 @Service
@@ -30,6 +30,7 @@ public class PasswordResetService {
     private final RefreshTokenService refreshTokenService;
     private final PasswordEncoder passwordEncoder;
     private final AuthProperties properties;
+    private final VerificationCodeMailer mailer;
     private final Clock clock;
 
     /** Luôn "thành công" với caller dù email không tồn tại → không lộ email nào đã đăng ký. */
@@ -59,10 +60,12 @@ public class PasswordResetService {
         tokenRepository.invalidateAllOfUser(user.getId(), now);
         String raw = TokenHasher.generateToken();
         tokenRepository.save(new PasswordResetToken(user, TokenHasher.sha256(raw), now.plus(properties.passwordResetTtl())));
-
-        if (properties.logResetLinks()) {
-            log.info("[DEV – chưa có SMTP] Link đặt lại mật khẩu cho {}: {}/reset-password?token={}",
-                    user.getEmail(), properties.frontendUrl(), raw);
+        String link = properties.frontendUrl() + "/reset-password?token=" + raw;
+        try {
+            mailer.sendPasswordResetLink(user.getEmail(), link, properties.passwordResetTtl());
+        } catch (BusinessException e) {
+            // Không báo lỗi ra ngoài: phản hồi phải giống hệt khi email không tồn tại (không lộ tài khoản)
+            log.error("Không gửi được email đặt lại mật khẩu cho tài khoản #{}: {}", user.getId(), e.getMessage());
         }
     }
 }

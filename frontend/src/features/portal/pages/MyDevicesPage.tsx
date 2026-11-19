@@ -9,8 +9,10 @@ import { PageHeader } from '@/components/PageHeader'
 import { DeviceFormModal } from '@/features/devices/components/DeviceFormModal'
 import { DEVICE_TYPE_LABELS, devicesApi, type DeviceResponse } from '@/features/devices/devicesApi'
 import { useAsyncData } from '@/hooks/useAsyncData'
+import { useProfileGate } from '@/features/auth/profileGate'
 
 export function MyDevicesPage() {
+  const { requireProfile } = useProfileGate()
   const navigate = useNavigate()
   const [editing, setEditing] = useState<DeviceResponse | 'new' | null>(null)
   const { data, loading, error, reload } = useAsyncData(() => devicesApi.mine(), [])
@@ -22,7 +24,7 @@ export function MyDevicesPage() {
       <PageHeader
         title="Thiết bị của tôi"
         description="Thêm thiết bị để gửi yêu cầu sửa chữa trực tuyến."
-        extra={<Button type="primary" icon={<PlusOutlined />} onClick={() => setEditing('new')}>Thêm thiết bị</Button>}
+        extra={<Button type="primary" icon={<PlusOutlined />} onClick={() => requireProfile(() => setEditing('new'))}>Thêm thiết bị</Button>}
       />
       {loading ? (
         <Skeleton active />
@@ -31,7 +33,7 @@ export function MyDevicesPage() {
           <EmptyState
             title="Bạn chưa có thiết bị nào"
             description="Thêm thiết bị (điện thoại, laptop...) để gửi yêu cầu sửa chữa và tra cứu bảo hành."
-            action={<Button type="primary" icon={<PlusOutlined />} onClick={() => setEditing('new')}>Thêm thiết bị</Button>}
+            action={<Button type="primary" icon={<PlusOutlined />} onClick={() => requireProfile(() => setEditing('new'))}>Thêm thiết bị</Button>}
           />
         </Card>
       ) : (
