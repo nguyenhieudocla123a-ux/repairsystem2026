@@ -1,8 +1,9 @@
 import { CameraOutlined, DeleteOutlined, LockOutlined, MailOutlined, PhoneOutlined, UserOutlined } from '@ant-design/icons'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Alert, App, Button, Card, Form, Input, Popconfirm } from 'antd'
-import { useRef, useState, type ChangeEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from 'react'
 import { useForm } from 'react-hook-form'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '@/app/hooks'
 import { FormField } from '@/components/form/FormField'
 import { PageHeader } from '@/components/PageHeader'
@@ -15,7 +16,8 @@ import { formatDate, formatDateTime } from '@/utils/format'
 import { AVATAR_ACCEPT, prepareAvatar } from '@/utils/image'
 import { authApi } from '../authApi'
 import { credentialsReceived, userUpdated } from '../authSlice'
-import { changePasswordSchema, profileSchema, type ChangePasswordForm, type ProfileForm } from '../schemas'
+import { hasPlaceholderName, isProfileComplete, type ProfileReturnState } from '../profileGate'
+import { changePasswordSchema, completeProfileSchema, profileSchema, type ChangePasswordForm, type ProfileForm } from '../schemas'
 
 /** Đầu trang hồ sơ: ảnh đại diện lớn + đổi/xóa ảnh, tên, vai trò, thông tin liên hệ. */
 function ProfileHero() {
@@ -136,11 +138,24 @@ function ProfileInfoCard() {
   const user = useAppSelector((s) => s.auth.user)!
   const dispatch = useAppDispatch()
   const { message } = App.useApp()
+  const navigate = useNavigate()
+  const returnTo = (useLocation().state as ProfileReturnState | null)?.returnTo
+  const incomplete = !isProfileComplete(user)
   const [formError, setFormError] = useState<string | null>(null)
-  const { control, handleSubmit, setError, reset, formState } = useForm<ProfileForm>({
-    resolver: zodResolver(profileSchema),
-    defaultValues: { fullName: user.fullName, phone: user.phone ?? '' },
+  const { control, handleSubmit, setError, setFocus, reset, formState } = useForm<ProfileForm>({
+    // Khách hàng bắt buộc có SĐT (khoá tra cứu ở quầy); nhân viên thì không
+    resolver: zodResolver(user.role === 'CUSTOMER' ? completeProfileSchema : profileSchema),
+    // Họ tên tạm lấy từ email lúc đăng ký → để trống cho khách nhập tên thật
+    defaultValues: { fullName: incomplete && hasPlaceholderName(user) ? '' : user.fullName, phone: user.phone ?? '' },
   })
+
+  // Đến đây để hoàn tất hồ sơ → cuộn tới thẻ và đưa con trỏ vào ô còn thiếu
+  useEffect(() => {
+    if (!incomplete) return
+    document.getElementById('profile-info')?.scrollIntoView({ block: 'center' })
+    setFocus(hasPlaceholderName(user) ? 'fullName' : 'phone')
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ chạy khi mở trang
+  }, [])
 
   const onSubmit = handleSubmit(async (values) => {
     setFormError(null)
@@ -148,24 +163,35 @@ function ProfileInfoCard() {
       const updated = await authApi.updateProfile({ fullName: values.fullName, phone: values.phone || undefined })
       dispatch(userUpdated(updated))
       reset({ fullName: updated.fullName, phone: updated.phone ?? '' })
-      message.success('Đã cập nhật hồ sơ')
+      if (incomplete && isProfileComplete(updated)) {
+        message.success('Đã hoàn tất hồ sơ – bạn có thể dùng mọi dịch vụ')
+        if (returnTo) navigate(returnTo, { replace: true })
+      } else {
+        message.success('Đã cập nhật hồ sơ')
+      }
     } catch (error) {
       if (!applyApiFieldErrors(error, setError, ['fullName', 'phone'])) setFormError(getErrorMessage(error))
     }
   })
 
   return (
-    <Card title={<SectionTitle icon={<UserOutlined />} title="Thông tin cá nhân" description="Tên và số điện thoại hiển thị trên phiếu sửa chữa." />}>
+    <Card id="profile-info" className={incomplete ? 'ring-2 ring-amber-400/60' : undefined}
+      title={<SectionTitle icon={<UserOutlined />} title="Thông tin cá nhân" description="Tên và số điện thoại hiển thị trên phiếu sửa chữa." />}>
+      {incomplete && (
+        <Alert type="warning" showIcon className="mb-4"
+          title="Bổ sung họ tên và số điện thoại để hoàn tất hồ sơ"
+          description={returnTo ? 'Lưu xong bạn sẽ được đưa về trang đang làm.' : 'Cần có để gửi yêu cầu sửa chữa, thêm thiết bị, xác nhận báo giá và yêu cầu bảo hành.'} />
+      )}
       {formError && <Alert type="error" showIcon title={formError} className="mb-4" role="alert" />}
       <Form layout="vertical" onFinish={onSubmit} component="form" noValidate>
         <div className="grid gap-x-4 sm:grid-cols-2">
-          <FormField control={control} name="fullName" label="Họ và tên" required render={(f) => <Input {...f} autoComplete="name" />} />
+          <FormField control={control} name="fullName" label="Họ và tên" required render={(f) => <Input {...f} autoComplete="name" placeholder="Nguyễn Văn A" />} />
           <FormField
             control={control}
             name="phone"
             label="Số điện thoại"
             required={user.role === 'CUSTOMER'}
-            render={(f) => <Input {...f} type="tel" autoComplete="tel" />}
+            render={(f) => <Input {...f} type="tel" inputMode="tel" autoComplete="tel" placeholder="0901234567" />}
           />
         </div>
         <Form.Item label="Email đăng nhập" extra="Email dùng để đăng nhập, không tự đổi được. Liên hệ quản trị viên nếu cần thay đổi.">
@@ -174,7 +200,7 @@ function ProfileInfoCard() {
         <div className="flex justify-end gap-2">
           <Button disabled={!formState.isDirty || formState.isSubmitting} onClick={() => reset()}>Hoàn tác</Button>
           <Button type="primary" htmlType="submit" loading={formState.isSubmitting} disabled={!formState.isDirty}>
-            Lưu thay đổi
+            {incomplete ? 'Lưu và hoàn tất' : 'Lưu thay đổi'}
           </Button>
         </div>
       </Form>
