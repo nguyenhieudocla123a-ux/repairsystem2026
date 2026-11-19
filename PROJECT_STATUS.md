@@ -281,6 +281,8 @@
 - [x] Họ tên/SĐT không bắt buộc khi đăng ký (V10: `customers.phone` cho phép NULL); thao tác dịch vụ trả 409 PROFILE_INCOMPLETE,
       frontend hiện dải nhắc / hộp nhắc → đưa tới trang Hồ sơ cá nhân (đánh dấu thẻ thông tin, con trỏ vào ô thiếu),
       lưu xong tự quay về trang đang làm
+- [x] Đăng ký qua Google/Facebook giống đăng ký email: chỉ gửi mã về email + nhập mã (họ tên lấy từ mạng xã hội);
+      app Facebook "RepairFlow" (chế độ Development) đã tạo, khoá trong .env
 - [x] Quên mật khẩu gửi email thật (trước chỉ in log) + màn xác nhận rõ ràng: các bước, nút mở Gmail/Outlook, gửi lại sau 60s – TD-80
 - [x] Kiểm tra: backend 140 test xanh (2 test mới), frontend 49 test, lint, typecheck; xem trên trình duyệt form đăng ký bước 1 và màn quên mật khẩu
 - [ ] Chưa thử đầu-cuối trên trình duyệt với tài khoản khách thật (luồng điều hướng hồ sơ có test giao diện profileGate.test.tsx)

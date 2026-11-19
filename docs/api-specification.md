@@ -60,7 +60,7 @@ Frontend: interceptor chỉ tự refresh khi `401` + `code = TOKEN_EXPIRED`.
 | GET | `/auth/oauth2/authorize/{google\|facebook}` | P | Điều hướng trình duyệt sang Google/Facebook (302) – xem docs/social-login.md |
 | GET | `/auth/oauth2/callback/{id}` | P | Google/Facebook gọi về; chuyển tới `/oauth/callback`, `/register/social` hoặc `/login?oauthError=` |
 | GET | `/auth/oauth2/pending` | P (cookie `rf_oauth_signup`) | Thông tin đăng ký chờ `{provider, email, fullName}` |
-| POST | `/auth/oauth2/complete` | P (cookie `rf_oauth_signup`) | `{fullName, phone, address?, verificationCode}` → 201 + cookie refresh token |
+| POST | `/auth/oauth2/complete` | P (cookie `rf_oauth_signup`) | `{verificationCode, fullName?, phone?, address?}` → 201 + cookie refresh token. Họ tên trống → tên Google/Facebook; SĐT trống → hồ sơ chưa hoàn tất (TD-79) |
 | POST | `/auth/refresh` | P (cookie) | Cấp access token mới, xoay vòng refresh token |
 | POST | `/auth/logout` | P (cookie) + Bearer nếu có | Thu hồi refresh token, blacklist access token |
 | POST | `/auth/forgot-password` | P | Luôn trả 204 (không tiết lộ email có tồn tại). Email có tài khoản đang hoạt động → gửi thư "[RepairFlow] Đặt lại mật khẩu" chứa liên kết `FRONTEND_URL/reset-password?token=…` (30 phút, dùng một lần); lỗi SMTP chỉ ghi log |

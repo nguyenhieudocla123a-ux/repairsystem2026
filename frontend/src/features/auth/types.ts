@@ -73,9 +73,10 @@ export interface PendingSocialSignup {
   fullName: string
 }
 
+/** Chỉ bắt buộc mã 6 số; họ tên trống → dùng tên Google/Facebook, SĐT trống → bổ sung ở trang hồ sơ. */
 export interface CompleteSocialSignupRequest {
-  fullName: string
-  phone: string
+  fullName?: string
+  phone?: string
   address?: string
   verificationCode: string
 }

@@ -154,6 +154,23 @@ class SocialLoginIT extends ApiTestSupport {
     }
 
     @Test
+    void facebookSignupNeedsOnlyEmailCodeAndUsesProviderName() {
+        String email = uniqueEmail("fb");
+        Outcome first = socialLoginService.handle(SocialLoginService.SocialProfile.from(SocialProvider.FACEBOOK,
+                Map.of("id", "fb-" + UUID.randomUUID(), "email", email, "name", "Nguyễn Facebook")), RequestMetadata.unknown());
+        String token = ((Outcome.NeedsSignup) first).pendingToken();
+
+        post("/auth/register/send-code", Map.of("email", email), null);
+        ResponseEntity<JsonNode> done = withSignupCookie(HttpMethod.POST, "/auth/oauth2/complete",
+                Map.of("verificationCode", mailer.lastCodeFor(email)), token);
+
+        assertThat(done.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        JsonNode user = done.getBody().get("user");
+        assertThat(user.get("fullName").asText()).isEqualTo("Nguyễn Facebook");
+        assertThat(user.get("phone").isNull()).as("SĐT bổ sung sau ở trang hồ sơ").isTrue();
+    }
+
+    @Test
     void completeWithoutPendingCookieIsRejected() {
         Map<String, String> body = Map.of("fullName", "Ai Đó", "phone", uniquePhone(), "verificationCode", "123456");
 

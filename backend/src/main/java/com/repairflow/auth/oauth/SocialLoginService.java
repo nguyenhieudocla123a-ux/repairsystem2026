@@ -145,9 +145,14 @@ public class SocialLoginService {
     public AuthService.AuthResult complete(String token, String fullName, String phone, String address,
                                            String verificationCode, RequestMetadata metadata) {
         PendingSignup pending = pending(token);
-        authService.assertCanRegister(pending.email(), phone);
+        String cleanPhone = StringUtils.hasText(phone) ? phone.trim() : null;
+        authService.assertCanRegister(pending.email(), cleanPhone);
         registrationCodeService.verifyAndConsume(pending.email(), verificationCode);
-        User user = authService.createCustomerAccount(pending.email(), null, fullName, phone, address);
+        // Tên: người dùng nhập > tên từ Google/Facebook > phần trước @ của email
+        String name = StringUtils.hasText(fullName) ? fullName
+                : StringUtils.hasText(pending.fullName()) ? pending.fullName()
+                : pending.email().substring(0, pending.email().indexOf('@'));
+        User user = authService.createCustomerAccount(pending.email(), null, name, cleanPhone, address);
         identityRepository.save(new UserIdentity(user, pending.provider(), pending.providerUserId()));
         redis.delete(PENDING_KEY + TokenHasher.sha256(token));
         return authService.startSession(user, metadata);

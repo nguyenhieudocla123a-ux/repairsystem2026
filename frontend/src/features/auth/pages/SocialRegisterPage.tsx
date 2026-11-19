@@ -1,86 +1,93 @@
-import { FacebookFilled, GoogleOutlined } from '@ant-design/icons'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { Alert, Button, Form, Input, Result, Skeleton } from 'antd'
+import { FacebookFilled, GoogleOutlined, MailOutlined } from '@ant-design/icons'
+import { Alert, App, Button, Result, Skeleton } from 'antd'
 import { useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
-import { z } from 'zod'
 import { useAppDispatch } from '@/app/hooks'
-import { FormField } from '@/components/form/FormField'
 import { getApiError, getErrorMessage } from '@/utils/errors'
-import { applyApiFieldErrors } from '@/utils/formErrors'
 import { authApi } from '../authApi'
 import { completeSocialSignup } from '../authSlice'
-import { SendCodeButton, VerificationCodeField } from '../components/VerificationCode'
-import { fullNameSchema, phoneSchema } from '../schemas'
+import { CodeVerifyStep } from '../components/CodeVerifyStep'
 import type { PendingSocialSignup } from '../types'
 import { useVerificationCode } from '../useVerificationCode'
 
-const schema = z.object({
-  fullName: fullNameSchema,
-  phone: phoneSchema,
-  address: z.string().trim().max(255, 'Địa chỉ quá dài').optional(),
-})
-type SocialRegisterForm = z.infer<typeof schema>
-const FIELDS = ['fullName', 'phone', 'address'] as const
-
-const PROVIDER_LABEL = { google: 'Google', facebook: 'Facebook' } as const
+const PROVIDER = {
+  google: { label: 'Google', icon: <GoogleOutlined /> },
+  facebook: { label: 'Facebook', icon: <FacebookFilled className="text-[#1877F2]" /> },
+} as const
 
 /**
- * Hoàn tất đăng ký sau khi chọn Google/Facebook lần đầu: email lấy từ tài khoản mạng xã hội (không sửa được),
- * người dùng gửi mã 6 số về email đó, nhập mã + số điện thoại → tạo tài khoản khách hàng và đăng nhập.
+ * Hoàn tất đăng ký sau khi chọn Google/Facebook lần đầu – giống đăng ký bằng email:
+ * gửi mã 6 số về email của tài khoản mạng xã hội → nhập mã → tạo tài khoản khách hàng và đăng nhập.
+ * Họ tên lấy từ Google/Facebook; SĐT bổ sung sau ở trang hồ sơ (nhắc khi khách dùng dịch vụ).
  */
 export function SocialRegisterPage() {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
+  const { message } = App.useApp()
   const [pending, setPending] = useState<PendingSocialSignup | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
+  const [step, setStep] = useState<'intro' | 'verify'>('intro')
+  const [submitting, setSubmitting] = useState(false)
   const verification = useVerificationCode()
-
-  const { control, handleSubmit, setError, reset, formState } = useForm<SocialRegisterForm>({
-    resolver: zodResolver(schema),
-    defaultValues: { fullName: '', phone: '', address: '' },
-  })
 
   useEffect(() => {
     let alive = true
     authApi
       .oauthPending()
-      .then((p) => {
-        if (!alive) return
-        setPending(p)
-        reset({ fullName: p.fullName, phone: '', address: '' })
-      })
+      .then((p) => alive && setPending(p))
       .catch((e: unknown) => alive && setLoadError(getErrorMessage(e)))
     return () => {
       alive = false
     }
-  }, [reset])
+  }, [])
 
   const sendCode = async () => {
     if (!pending) return
+    setFormError(null)
+    // Vừa gửi mã (quay lại rồi bấm tiếp) → dùng tiếp mã cũ, không gửi lại trước 60 giây
+    if (verification.isSentTo(pending.email) && verification.resendIn > 0) {
+      setStep('verify')
+      return
+    }
     try {
       await verification.send(pending.email)
+      setStep('verify')
+    } catch (error) {
+      setFormError(getErrorMessage(error))
+    }
+  }
+
+  const resend = async () => {
+    if (!pending) return
+    try {
+      await verification.send(pending.email)
+      message.success('Đã gửi lại mã xác nhận')
     } catch (error) {
       verification.setError(getErrorMessage(error))
     }
   }
 
-  const onSubmit = handleSubmit(async (values) => {
-    if (!pending) return
+  const complete = async (code: string) => {
+    setSubmitting(true)
     setFormError(null)
-    if (!verification.validate(pending.email)) return
     try {
-      await dispatch(completeSocialSignup({ ...values, address: values.address || undefined, verificationCode: verification.code })).unwrap()
+      await dispatch(completeSocialSignup({ verificationCode: code })).unwrap()
+      message.success('Đăng ký thành công – chào mừng bạn đến với RepairFlow!')
       navigate('/dashboard', { replace: true })
     } catch (error) {
-      if (applyApiFieldErrors(error, setError, FIELDS)) return
       const api = getApiError(error)
-      if (api?.code === 'BAD_REQUEST' && !api.message.includes('hết hạn, vui lòng chọn lại')) verification.setError(getErrorMessage(error))
-      else setFormError(getErrorMessage(error))
+      // 400 là lỗi mã (sai / hết hạn / quá số lần thử); riêng phiên đăng ký hết hạn thì báo chung
+      if (api?.code === 'BAD_REQUEST' && !api.message.includes('hết hạn, vui lòng chọn lại')) {
+        verification.setError(getErrorMessage(error))
+        verification.setCode('')
+      } else {
+        setFormError(getErrorMessage(error))
+      }
+    } finally {
+      setSubmitting(false)
     }
-  })
+  }
 
   if (loadError) {
     return (
@@ -88,45 +95,54 @@ export function SocialRegisterPage() {
         status="warning"
         title="Phiên đăng ký đã hết hạn"
         subTitle={loadError}
-        extra={
-          <Link to="/register">
-            <Button type="primary">Quay lại đăng ký</Button>
-          </Link>
-        }
+        extra={<Link to="/register"><Button type="primary">Quay lại đăng ký</Button></Link>}
       />
     )
   }
-  if (!pending) return <Skeleton active paragraph={{ rows: 6 }} />
+  if (!pending) return <Skeleton active paragraph={{ rows: 5 }} />
 
-  const ProviderIcon = pending.provider === 'google' ? GoogleOutlined : FacebookFilled
+  const provider = PROVIDER[pending.provider]
+
+  if (step === 'verify') {
+    return (
+      <CodeVerifyStep
+        email={pending.email}
+        verification={verification}
+        submitting={submitting}
+        formError={formError}
+        backLabel="Quay lại"
+        onBack={() => { verification.setError(null); setStep('intro') }}
+        onComplete={(code) => void complete(code)}
+        onResend={resend}
+      />
+    )
+  }
+
   return (
     <>
-      <h1 className="m-0 text-2xl font-bold text-text">Hoàn tất đăng ký</h1>
-      <p className="mt-2 mb-8 text-text-secondary">
-        <ProviderIcon /> Tài khoản {PROVIDER_LABEL[pending.provider]} · xác nhận email và bổ sung số điện thoại.
+      <span aria-hidden="true" className="mb-5 flex size-12 items-center justify-center rounded-xl bg-white text-2xl shadow-card">
+        {provider.icon}
+      </span>
+      <h1 className="m-0 text-2xl leading-8 font-semibold tracking-tight text-text">Hoàn tất đăng ký bằng {provider.label}</h1>
+      <p className="mt-2 mb-7 text-sm leading-6 text-text-secondary">
+        Xin chào{pending.fullName ? <> <strong className="text-text">{pending.fullName}</strong></> : null}! Xác nhận email để tạo tài khoản.
       </p>
 
       {formError && <Alert type="error" showIcon title={formError} className="mb-5" role="alert" />}
 
-      <Form layout="vertical" requiredMark onFinish={onSubmit} component="form" noValidate>
-        <Form.Item label="Email" htmlFor="socialEmail">
-          <div className="flex gap-2">
-            <Input id="socialEmail" value={pending.email} readOnly className="flex-1" />
-            <SendCodeButton state={verification} email={pending.email} onClick={sendCode} />
-          </div>
-        </Form.Item>
-        <VerificationCodeField state={verification} email={pending.email} />
+      <div className="mb-6 flex items-center gap-3 rounded-xl border border-border bg-bg/40 px-4 py-3">
+        <MailOutlined aria-hidden="true" className="text-lg text-text-muted" />
+        <div className="min-w-0">
+          <div className="text-xs text-text-muted">Email đăng ký</div>
+          <div className="truncate font-medium text-text">{pending.email}</div>
+        </div>
+      </div>
 
-        <FormField control={control} name="fullName" label="Họ và tên" required render={(f) => <Input {...f} autoComplete="name" />} />
-        <FormField control={control} name="phone" label="Số điện thoại" required render={(f) => <Input {...f} type="tel" autoComplete="tel" placeholder="0901234567" />} />
-        <FormField control={control} name="address" label="Địa chỉ" render={(f) => <Input {...f} value={f.value ?? ''} autoComplete="street-address" placeholder="Không bắt buộc" />} />
+      <Button type="primary" size="large" block loading={verification.sending} onClick={sendCode} className="rf-glow-btn">
+        Gửi mã xác nhận
+      </Button>
 
-        <Button type="primary" htmlType="submit" size="large" block loading={formState.isSubmitting} className="rf-glow-btn mt-2">
-          Tạo tài khoản
-        </Button>
-      </Form>
-
-      <p className="mt-6 text-center text-text-secondary">
+      <p className="mt-6 mb-0 text-center text-sm">
         <Link to="/login">Quay lại đăng nhập</Link>
       </p>
     </>

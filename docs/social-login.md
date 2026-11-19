@@ -16,7 +16,7 @@ Nút "Google" (frontend)
        ├─ email của tài khoản nội bộ                       → /login?oauthError=STAFF_ACCOUNT
        └─ người mới                                       → cookie phiên đăng ký chờ (15 phút) → /register/social
             → POST /auth/register/send-code (mã 6 số gửi về email, lưu Redis 10 phút, 60 giây mới gửi lại)
-            → POST /auth/oauth2/complete { fullName, phone, address?, verificationCode }
+            → POST /auth/oauth2/complete { verificationCode }   (họ tên lấy từ Google/Facebook, SĐT bổ sung ở trang hồ sơ)
             → tạo tài khoản CUSTOMER (chưa có mật khẩu) + hồ sơ khách + liên kết → đăng nhập
 ```
 

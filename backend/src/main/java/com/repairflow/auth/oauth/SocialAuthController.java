@@ -45,10 +45,13 @@ public class SocialAuthController {
     public record PendingSignupResponse(String provider, String email, String fullName) {
     }
 
+    /**
+     * Giống đăng ký bằng email: chỉ bắt buộc mã 6 số gửi về email của tài khoản mạng xã hội.
+     * Họ tên trống → dùng tên Google/Facebook; SĐT trống → hồ sơ chưa hoàn tất, bổ sung ở trang hồ sơ.
+     */
     public record CompleteSocialSignupRequest(
-            @NotBlank(message = "Vui lòng nhập họ tên") @Size(min = 2, max = 150, message = "Họ tên từ 2 đến 150 ký tự")
-            String fullName,
-            @NotBlank(message = "Vui lòng nhập số điện thoại") @VietnamesePhone String phone,
+            @Size(max = 150, message = "Họ tên tối đa 150 ký tự") String fullName,
+            @VietnamesePhone String phone,
             @Size(max = 255, message = "Địa chỉ tối đa 255 ký tự") String address,
             @NotBlank(message = "Vui lòng nhập mã xác nhận đã gửi tới email")
             @Pattern(regexp = "\\d{6}", message = "Mã xác nhận gồm 6 chữ số") String verificationCode) {
@@ -67,7 +70,7 @@ public class SocialAuthController {
         return new PendingSignupResponse(p.provider().registrationId(), p.email(), p.fullName());
     }
 
-    @Operation(summary = "Hoàn tất đăng ký Google/Facebook: SĐT + mã 6 số gửi về email (gửi mã bằng /auth/register/send-code)")
+    @Operation(summary = "Hoàn tất đăng ký Google/Facebook: mã 6 số gửi về email (gửi mã bằng /auth/register/send-code); họ tên, SĐT không bắt buộc")
     @PostMapping("/complete")
     public ResponseEntity<AuthResponse> complete(
             @CookieValue(name = SocialSignupCookie.NAME, required = false) String token,
