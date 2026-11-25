@@ -1,0 +1,21 @@
+// Cloudflare Workers: phát bản build của frontend (dist/) + chuyển tiếp /api và /ws tới backend Spring Boot.
+// Deploy: `npm run build` rồi `npx wrangler deploy` (Workers Builds: Root directory = frontend, Build command = npm run build).
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "repairsystem2026",
+  "main": "worker/index.ts",
+  "compatibility_date": "2025-11-01",
+  "assets": {
+    // Phát file ĐÃ BUILD – không phải mã nguồn (index.html gốc trỏ /src/main.tsx, trình duyệt không chạy được)
+    "directory": "./dist",
+    "binding": "ASSETS",
+    // React Router: đường dẫn không phải file (/dashboard, /inventory…) trả index.html
+    "not_found_handling": "single-page-application",
+    // Chỉ các đường dẫn này chạy qua Worker; còn lại Cloudflare phát thẳng file tĩnh kèm Content-Type đúng
+    "run_worker_first": ["/api/*", "/ws", "/ws/*"]
+  },
+  "vars": {
+    // Địa chỉ backend (vd. https://api.nguyenvanhieu1.id.vn). Đặt trong Dashboard → Settings → Variables nếu không muốn ghi ở đây.
+    "BACKEND_ORIGIN": ""
+  }
+}
