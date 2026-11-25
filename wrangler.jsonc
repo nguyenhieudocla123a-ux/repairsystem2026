@@ -16,8 +16,12 @@
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*", "/ws", "/ws/*"]
   },
-  "vars": {
-    // Địa chỉ backend, vd. https://api.nguyenvanhieu1.id.vn (đặt ở Dashboard → Settings → Variables cũng được)
-    "BACKEND_ORIGIN": ""
-  }
+  // Backend Spring Boot trên máy chủ cửa hàng, nối qua Cloudflare Tunnel "repairflow-backend" bằng Workers VPC
+  // (VPC Service "repairflow-backend" → localhost:8080) – không cần tên miền hay địa chỉ công khai cho backend.
+  "vpc_services": [
+    { "binding": "BACKEND", "service_id": "01a211fe-69ab-7ea2-b12e-ffa6c9d81b9e" }
+  ],
+  // BACKEND_ORIGIN (tuỳ chọn, vd. https://api.example.com) đặt ở Dashboard → Settings → Variables;
+  // keep_vars để mỗi lần deploy không xoá giá trị đó.
+  "keep_vars": true
 }
