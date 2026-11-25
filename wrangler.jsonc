@@ -1,0 +1,23 @@
+// Cloudflare Workers – dùng khi Workers Builds để Root directory là gốc repo (mặc định).
+// `wrangler deploy` tự chạy build.command: cài thư viện + build frontend, rồi phát frontend/dist.
+// (Nếu Root directory = frontend thì Cloudflare dùng frontend/wrangler.jsonc – cùng nội dung.)
+{
+  "$schema": "frontend/node_modules/wrangler/config-schema.json",
+  "name": "repairsystem2026",
+  "main": "frontend/worker/index.ts",
+  "compatibility_date": "2025-11-01",
+  "build": {
+    "command": "npm ci --prefix frontend && npm run build --prefix frontend"
+  },
+  "assets": {
+    // Phát bản ĐÃ BUILD – index.html nguồn trỏ /src/main.tsx nên trình duyệt báo MIME rỗng
+    "directory": "./frontend/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/ws", "/ws/*"]
+  },
+  "vars": {
+    // Địa chỉ backend, vd. https://api.nguyenvanhieu1.id.vn (đặt ở Dashboard → Settings → Variables cũng được)
+    "BACKEND_ORIGIN": ""
+  }
+}

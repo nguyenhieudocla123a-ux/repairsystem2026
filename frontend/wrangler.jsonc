@@ -5,6 +5,10 @@
   "name": "repairsystem2026",
   "main": "worker/index.ts",
   "compatibility_date": "2025-11-01",
+  // wrangler deploy tự build trước (không phụ thuộc Build command trên Dashboard)
+  "build": {
+    "command": "npm run build"
+  },
   "assets": {
     // Phát file ĐÃ BUILD – không phải mã nguồn (index.html gốc trỏ /src/main.tsx, trình duyệt không chạy được)
     "directory": "./dist",
